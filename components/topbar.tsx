@@ -3,16 +3,20 @@
 import { usePathname } from 'next/navigation'
 import { IconChevron, IconBell } from './icons'
 
-const ROUTE_LABELS: Record<string, string> = {
-  '/':          "Vue d'ensemble",
-  '/fiches':    'Fiches',
-  '/imports':   'Imports & validation',
-  '/assistant': 'Assistant interne',
-}
+const ROUTE_LABELS: [string, string][] = [
+  ['/',          "Vue d'ensemble"],
+  ['/fiches',    'Fiches'],
+  ['/imports',   'Imports & validation'],
+  ['/assistant', 'Assistant interne'],
+  ['/users',     'Utilisateurs'],
+]
 
 export default function Topbar() {
   const pathname = usePathname()
-  const label = ROUTE_LABELS[pathname] ?? 'CertiBase'
+  const match = ROUTE_LABELS.find(([prefix]) =>
+    prefix === '/' ? pathname === '/' : pathname === prefix || pathname.startsWith(prefix + '/')
+  )
+  const label = match?.[1] ?? 'CertiBase'
 
   return (
     <header
@@ -32,26 +36,8 @@ export default function Topbar() {
 
       {/* Cloche */}
       <button
-        className="flex items-center justify-center rounded-md relative transition-colors"
-        style={{
-          width: 38,
-          height: 38,
-          border: '1px solid var(--border)',
-          background: 'var(--surface)',
-          color: 'var(--text-muted)',
-          cursor: 'pointer',
-        }}
+        className="cb-icon-btn relative"
         aria-label="Notifications"
-        onMouseEnter={e => {
-          const el = e.currentTarget as HTMLElement
-          el.style.background = 'var(--surface-2)'
-          el.style.color = 'var(--text)'
-        }}
-        onMouseLeave={e => {
-          const el = e.currentTarget as HTMLElement
-          el.style.background = 'var(--surface)'
-          el.style.color = 'var(--text-muted)'
-        }}
       >
         <IconBell size={18} />
         <span

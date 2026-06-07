@@ -11,7 +11,7 @@ export default async function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
       <div
-        className="w-full max-w-sm rounded-xl p-8"
+        className="cb-fade-in w-full max-w-sm rounded-xl p-8"
         style={{
           background: 'var(--surface)',
           border: '1px solid var(--border)',

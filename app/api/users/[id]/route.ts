@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-const VALID_ROLES = ['admin', 'csm', 'sales', 'new']
+const VALID_ROLES = ['admin', 'csm', 'sales', 'ops', 'new']
 
 export async function PATCH(
   request: Request,

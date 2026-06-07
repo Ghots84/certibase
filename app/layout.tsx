@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={publicSans.variable} style={{ height: '100%' }}>
-      <body style={{ height: '100%', margin: 0 }}>{children}</body>
+      <body id="cb-root" style={{ height: '100%', margin: 0 }}>{children}</body>
     </html>
   )
 }

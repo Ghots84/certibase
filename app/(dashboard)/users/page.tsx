@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { IconUsers } from '@/components/icons'
 import InviteForm from './invite-form'
 import RoleSelect from './role-select'
 
@@ -17,6 +18,7 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Knowledge Manager',
   csm:   'Customer Success',
   sales: 'Account Executive',
+  ops:   'Operations',
   new:   'Nouveau',
 }
 
@@ -24,6 +26,7 @@ const ROLE_COLORS: Record<string, string> = {
   admin: '#7A5AF8',
   csm:   '#2D7DD2',
   sales: '#E8651E',
+  ops:   '#F59E0B',
   new:   '#8A94A2',
 }
 
@@ -55,7 +58,7 @@ export default async function UsersPage() {
   const users: Profile[] = profiles ?? []
 
   return (
-    <div className="flex flex-col" style={{ height: '100%' }}>
+    <div className="cb-fade-in flex flex-col" style={{ height: '100%' }}>
       {/* Header */}
       <div
         className="flex items-center justify-between px-7 py-4"
@@ -98,8 +101,16 @@ export default async function UsersPage() {
           </div>
 
           {users.length === 0 && (
-            <div className="px-5 py-10 text-center text-[13px]" style={{ color: 'var(--text-faint)' }}>
-              Aucun utilisateur pour le moment.
+            <div className="flex flex-col items-center gap-3 px-5 py-12 text-center">
+              <div
+                className="flex items-center justify-center rounded-xl"
+                style={{ width: 48, height: 48, background: 'var(--surface-2)', color: 'var(--text-faint)' }}
+              >
+                <IconUsers size={22} />
+              </div>
+              <p className="text-[13px]" style={{ color: 'var(--text-faint)' }}>
+                Aucun utilisateur pour le moment.
+              </p>
             </div>
           )}
 

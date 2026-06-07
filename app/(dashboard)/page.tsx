@@ -53,7 +53,7 @@ export default async function OverviewPage() {
       label: 'Imports actifs',
       value: stats.imports,
       sub: 'dans le pipeline',
-      color: 'var(--text-muted)',
+      color: stats.imports > 0 ? 'var(--accent)' : 'var(--text-faint)',
     },
   ]
 
@@ -93,7 +93,7 @@ export default async function OverviewPage() {
   ]
 
   return (
-    <div className="flex flex-col" style={{ height: '100%' }}>
+    <div className="cb-fade-in flex flex-col" style={{ height: '100%' }}>
       {/* Header */}
       <div
         className="px-7 py-5"

@@ -1,5 +1,6 @@
 import Sidebar from '@/components/sidebar'
 import Topbar from '@/components/topbar'
+import ToastProvider from '@/components/toast-provider'
 
 export default function DashboardLayout({
   children,
@@ -7,7 +8,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex" style={{ height: '100%', minWidth: 1080, background: 'var(--bg)' }}>
+    <div className="flex" style={{ height: '100vh', minWidth: 1080, background: 'var(--bg)' }}>
       <Sidebar />
       <main className="flex flex-col flex-1 min-w-0">
         <Topbar />
@@ -15,6 +16,7 @@ export default function DashboardLayout({
           {children}
         </div>
       </main>
+      <ToastProvider />
     </div>
   )
 }

@@ -18,36 +18,38 @@ export default function NavItem({ href, label, icon, badge }: NavItemProps) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-[11px] px-[11px] py-[9px] rounded-md text-sm font-medium no-underline transition-colors relative"
+      data-active={isActive}
+      className="cb-nav-link flex items-center gap-[11px] px-[11px] py-[9px] rounded-md text-sm no-underline relative"
       style={{
         color: isActive ? 'var(--sidebar-active-text)' : 'var(--sidebar-muted)',
         background: isActive ? 'var(--sidebar-active-bg)' : 'transparent',
         fontWeight: isActive ? 600 : 500,
       }}
     >
+      {/* Active indicator bar */}
       {isActive && (
         <span
           className="absolute rounded-r-sm"
           style={{
-            left: -14,
-            top: 8,
-            bottom: 8,
+            left: -11,
+            top: 6,
+            bottom: 6,
             width: 3,
             background: 'var(--sidebar-active-bar)',
           }}
         />
       )}
+
       {icon}
-      <span className="flex-1">{label}</span>
+      <span className="flex-1 truncate">{label}</span>
+
       {badge && (
         <span
-          className="text-[11px] font-bold text-center"
+          className="mono text-[11px] font-semibold"
           style={{
-            background: 'var(--sidebar-active-bar)',
-            color: '#fff',
-            padding: '1px 7px',
-            borderRadius: 'var(--radius-pill)',
-            minWidth: 20,
+            color: isActive ? 'rgba(255,255,255,0.7)' : 'var(--sidebar-muted)',
+            minWidth: 16,
+            textAlign: 'right',
           }}
         >
           {badge}
