@@ -9,14 +9,19 @@
     "lint": "eslint",
     "icescrum:push": "tsx scripts/sync-icescrum.ts push",
     "icescrum:pull": "tsx scripts/sync-icescrum.ts pull",
-    "icescrum:sync": "tsx scripts/sync-icescrum.ts both"
+    "icescrum:sync": "tsx scripts/sync-icescrum.ts both",
+    "seed": "tsx scripts/seed-fiches.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.102.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
     "next": "16.2.6",
+    "openai": "^6.42.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

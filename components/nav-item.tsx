@@ -1,16 +1,17 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 type NavItemProps = {
   href: string
   label: string
-  icon: React.ComponentType<{ size?: number }>
+  icon: ReactNode
   badge?: string
 }
 
-export default function NavItem({ href, label, icon: Icon, badge }: NavItemProps) {
+export default function NavItem({ href, label, icon, badge }: NavItemProps) {
   const pathname = usePathname()
   const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
 
@@ -36,7 +37,7 @@ export default function NavItem({ href, label, icon: Icon, badge }: NavItemProps
           }}
         />
       )}
-      <Icon size={18} />
+      {icon}
       <span className="flex-1">{label}</span>
       {badge && (
         <span

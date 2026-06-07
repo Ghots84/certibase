@@ -4,10 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 import SignOutButton from './sign-out-button'
 
 const NAV = [
-  { href: '/',          label: "Vue d'ensemble",      icon: IconGrid },
-  { href: '/fiches',    label: 'Fiches',               icon: IconCards,  badge: '8' },
-  { href: '/imports',   label: 'Imports & validation', icon: IconImport, badge: '4' },
-  { href: '/assistant', label: 'Assistant interne',    icon: IconChat },
+  { href: '/',          label: "Vue d'ensemble",      icon: <IconGrid size={18} /> },
+  { href: '/fiches',    label: 'Fiches',               icon: <IconCards size={18} />,  badge: '8' },
+  { href: '/imports',   label: 'Imports & validation', icon: <IconImport size={18} />, badge: '4' },
+  { href: '/assistant', label: 'Assistant interne',    icon: <IconChat size={18} /> },
 ]
 
 function getInitials(name: string | null, email: string): string {
