@@ -1,9 +1,10 @@
 import NavItem from './nav-item'
-import { IconGrid, IconCards, IconImport, IconChat } from './icons'
+import { IconGrid, IconCards, IconImport, IconChat, IconUsers } from './icons'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import SignOutButton from './sign-out-button'
 
-const NAV = [
+const BASE_NAV = [
   { href: '/',          label: "Vue d'ensemble",      icon: <IconGrid size={18} /> },
   { href: '/fiches',    label: 'Fiches',               icon: <IconCards size={18} />,  badge: '8' },
   { href: '/imports',   label: 'Imports & validation', icon: <IconImport size={18} />, badge: '4' },
@@ -37,7 +38,8 @@ export default async function Sidebar() {
 
   let profile = null
   if (user) {
-    const { data } = await supabase
+    const admin = createAdminClient()
+    const { data } = await admin
       .from('profiles')
       .select('full_name, role, avatar_initials, email')
       .eq('id', user.id)
@@ -50,6 +52,10 @@ export default async function Sidebar() {
   const role = profile?.role ?? 'new'
   const avatarColor = ROLE_COLORS[role] ?? '#8A94A2'
   const roleLabel = ROLE_LABELS[role] ?? role
+
+  const NAV = role === 'admin'
+    ? [...BASE_NAV, { href: '/users', label: 'Utilisateurs', icon: <IconUsers size={18} /> }]
+    : BASE_NAV
 
   return (
     <nav
