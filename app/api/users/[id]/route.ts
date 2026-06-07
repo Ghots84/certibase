@@ -29,7 +29,6 @@ export async function PATCH(
     return Response.json({ error: 'forbidden' }, { status: 403 })
   }
 
-  const admin = createAdminClient()
   const { error } = await admin
     .from('profiles')
     .update({ role })

@@ -23,7 +23,6 @@ export async function POST(request: Request) {
     return Response.json({ error: 'forbidden' }, { status: 403 })
   }
 
-  const admin = createAdminClient()
   const { error } = await admin.auth.admin.inviteUserByEmail(email.trim())
 
   if (error) {
