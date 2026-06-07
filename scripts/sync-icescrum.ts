@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 
+// Contourne les problèmes de certificat SSL sur Windows en dev
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const PROJECT_ROOT = process.cwd();
 const ARTIFACTS_DIR = path.join(PROJECT_ROOT, '_bmad-output', 'implementation-artifacts');
 const SYNC_STATE_FILE = path.join(PROJECT_ROOT, '.icescrum-sync.json');
@@ -135,7 +138,7 @@ async function pushLocalStories(stories: LocalStory[], syncState: SyncState): Pr
 
     if (existingId) {
       console.log(`  ↑ Updating  "${story.title}" (ID ${existingId})`);
-      await iceScrum('PUT', `story/${existingId}`, { story: storyData });
+      await iceScrum('PUT', `story/${existingId}`, { story: { ...storyData, state: toIceScrumState(story.status) } });
     } else {
       console.log(`  + Creating  "${story.title}"`);
       const created = await iceScrum<{ id: number } | { id: number }[]>('POST', 'story', { story: storyData });
