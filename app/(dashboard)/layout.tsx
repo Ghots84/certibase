@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Sidebar from '@/components/sidebar'
 import Topbar from '@/components/topbar'
 import ToastProvider from '@/components/toast-provider'
@@ -13,7 +14,7 @@ export default function DashboardLayout({
       <main className="flex flex-col flex-1 min-w-0">
         <Topbar />
         <div className="flex-1 overflow-y-auto" style={{ background: 'var(--bg)' }}>
-          {children}
+          <Suspense>{children}</Suspense>
         </div>
       </main>
       <ToastProvider />

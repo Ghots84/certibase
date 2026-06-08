@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   IconAudio, IconVideo, IconPdf, IconLink, IconUpload, IconChevron,
 } from '@/components/icons'
@@ -410,8 +411,9 @@ export default function ImportsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const searchParams = useSearchParams()
   const [retrying, setRetrying] = useState<Set<string>>(new Set())
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('selected'))
   const [isAdmin, setIsAdmin] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
