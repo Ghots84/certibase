@@ -5,7 +5,7 @@ import type { Fiche, FicheType } from '@/lib/supabase/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CATEGORIES = ['Toutes', 'Produit', 'Sales', 'Réglementaire', 'Veille'] as const
+const CATEGORIES = ['Toutes', 'Produit', 'Sales', 'Réglementaire', 'Veille', 'Support'] as const
 type Category = typeof CATEGORIES[number]
 
 const TYPE_TO_CATEGORY: Record<string, Category> = {
@@ -15,6 +15,7 @@ const TYPE_TO_CATEGORY: Record<string, Category> = {
   guide_situation: 'Réglementaire',
   doc_certiplace:  'Produit',
   veille:          'Veille',
+  support:         'Support',
 }
 
 const TYPE_META: Record<string, { label: string; bg: string; color: string }> = {
@@ -22,8 +23,9 @@ const TYPE_META: Record<string, { label: string; bg: string; color: string }> = 
   guide_situation: { label: 'Guide situation', bg: 'var(--warning-soft)', color: 'var(--warning)'   },
   cas_client:      { label: 'Cas client',      bg: 'var(--success-soft)', color: 'var(--success)'   },
   concurrent:      { label: 'Concurrent',      bg: 'var(--accent-soft)',  color: 'var(--accent)'    },
-  doc_certiplace:  { label: 'Produit',         bg: 'var(--primary-soft)', color: 'var(--primary)'   },
+  doc_certiplace:  { label: 'CertiPlace',      bg: 'var(--primary-soft)', color: 'var(--primary)'   },
   veille:          { label: 'Veille',          bg: 'var(--surface-2)',    color: 'var(--text-muted)' },
+  support:         { label: 'Support',         bg: 'var(--accent-soft)',  color: 'var(--accent)'    },
 }
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -617,6 +619,10 @@ export default function FichesPage() {
           />
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-faint)', whiteSpace: 'nowrap', userSelect: 'none' }}>
+            Catégorie
+          </span>
         <div style={{ display: 'flex', gap: 2, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 3 }}>
           {CATEGORIES.map(cat => (
             <button
@@ -635,6 +641,7 @@ export default function FichesPage() {
               {cat}
             </button>
           ))}
+        </div>
         </div>
       </div>
 
