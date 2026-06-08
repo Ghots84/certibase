@@ -11,26 +11,9 @@ export async function GET() {
   const admin = createAdminClient()
   const { data: profile } = await admin
     .from('profiles')
-    .select('role')
+    .select('role, full_name, email')
     .eq('id', user.id)
     .single()
 
-  const isAdmin = profile?.role === 'admin'
-
-  let query = admin
-    .from('imports')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (!isAdmin) {
-    query = query.eq('uploaded_by', user.id)
-  }
-
-  const { data, error } = await query
-
-  if (error) {
-    return Response.json({ error: error.message }, { status: 500 })
-  }
-
-  return Response.json(data ?? [])
+  return Response.json({ id: user.id, role: profile?.role ?? 'new', full_name: profile?.full_name, email: profile?.email ?? user.email })
 }

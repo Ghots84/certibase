@@ -21,15 +21,6 @@ export async function POST(request: Request) {
   if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
 
   const admin = createAdminClient()
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'admin') {
-    return Response.json({ error: 'forbidden' }, { status: 403 })
-  }
 
   const body = await request.json()
   const url: string = body?.url?.trim() ?? ''

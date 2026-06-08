@@ -81,11 +81,13 @@ type DraftState = 'pending' | 'approved' | 'rejected' | 'processing'
 function ValidationCard({
   draft,
   state,
+  isAdmin,
   onApprove,
   onReject,
 }: {
   draft: ImportFicheDraft
   state: DraftState
+  isAdmin: boolean
   onApprove: () => void
   onReject: () => void
 }) {
@@ -148,7 +150,7 @@ function ValidationCard({
       </p>
 
       {/* Actions */}
-      {state === 'pending' && (
+      {state === 'pending' && isAdmin && (
         <div style={{ display: 'flex', gap: 6 }}>
           <button
             onClick={onReject}
@@ -206,10 +208,12 @@ function ImportPanel({
   imp,
   onRetry,
   retrying,
+  isAdmin,
 }: {
   imp: Import | null
   onRetry: (id: string) => void
   retrying: Set<string>
+  isAdmin: boolean
 }) {
   const [drafts, setDrafts] = useState<ImportFicheDraft[]>([])
   const [draftStates, setDraftStates] = useState<Record<string, DraftState>>({})
@@ -369,6 +373,7 @@ function ImportPanel({
             key={draft.id}
             draft={draft}
             state={draftStates[draft.id] ?? 'pending'}
+            isAdmin={isAdmin}
             onApprove={() => handleApprove(draft.id)}
             onReject={() => handleReject(draft.id)}
           />
@@ -407,10 +412,17 @@ export default function ImportsPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [retrying, setRetrying] = useState<Set<string>>(new Set())
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const currentMode = FILE_MODES.find(m => m.value === mode)!
   const selectedImport = imports.find(i => i.id === selectedId) ?? null
+
+  useEffect(() => {
+    fetch('/api/me').then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.role === 'admin') setIsAdmin(true)
+    })
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -626,7 +638,7 @@ export default function ImportsPage() {
           </div>
 
           {/* Panneau droit */}
-          <ImportPanel imp={selectedImport} onRetry={retryImport} retrying={retrying} />
+          <ImportPanel imp={selectedImport} onRetry={retryImport} retrying={retrying} isAdmin={isAdmin} />
         </div>
       )}
     </div>
