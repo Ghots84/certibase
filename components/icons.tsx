@@ -81,3 +81,42 @@ export const IconLogout = (p: IconProps) => (
     <line x1="21" y1="12" x2="9" y2="12" />
   </I>
 )
+
+export const IconAudio = (p: IconProps) => (
+  <I {...p}>
+    <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+    <line x1="12" y1="19" x2="12" y2="22" />
+  </I>
+)
+
+export const IconVideo = (p: IconProps) => (
+  <I {...p}>
+    <polygon points="23 7 16 12 23 17 23 7" />
+    <rect x="1" y="5" width="15" height="14" rx="2" />
+  </I>
+)
+
+export const IconPdf = (p: IconProps) => (
+  <I {...p}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="8" y1="13" x2="16" y2="13" />
+    <line x1="8" y1="17" x2="14" y2="17" />
+  </I>
+)
+
+export const IconLink = (p: IconProps) => (
+  <I {...p}>
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+  </I>
+)
+
+export const IconUpload = (p: IconProps) => (
+  <I {...p}>
+    <polyline points="16 16 12 12 8 16" />
+    <line x1="12" y1="12" x2="12" y2="21" />
+    <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+  </I>
+)
