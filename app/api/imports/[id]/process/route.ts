@@ -97,6 +97,113 @@ async function extractPdf(filePath: string, originalName: string): Promise<strin
   return block.text
 }
 
+// ── Claude analysis ─────────────────────────────────────────────────────────
+
+type DraftItem = {
+  title: string
+  content: string
+  confidence: number
+  source_timestamp_sec?: number | null
+  source_page?: number | null
+}
+
+type ClaudeJson = {
+  objections: DraftItem[]
+  faq: DraftItem[]
+  moments_cles: DraftItem[]
+  angles_morts: DraftItem[]
+}
+
+const ANALYSIS_SYSTEM = `Tu analyses du contenu provenant d'une équipe CertiPlace (organismes de certification RNCP).
+Ton rôle : extraire la connaissance structurée pour alimenter une base interne.
+
+Retourne UNIQUEMENT un JSON valide, sans texte ni markdown autour, avec exactement ces 4 clés :
+{
+  "objections": [{"title":"...","content":"...","confidence":0.85,"source_timestamp_sec":null}],
+  "faq": [...],
+  "moments_cles": [...],
+  "angles_morts": [{"title":"...","content":"...","confidence":0.7}]
+}
+
+Définitions :
+- objections : objections clients récurrentes + réponse recommandée (verbatim si disponible)
+- faq : questions fréquentes avec réponse claire et actionnelle
+- moments_cles : arguments forts, cas clients chiffrés, best practices identifiées
+- angles_morts : sujets abordés sans réponse claire, lacunes détectées, questions sans fiche
+- confidence : 0-1, pertinence + complétude de l'information extraite
+- source_timestamp_sec : secondes dans l'audio/vidéo, null si non applicable
+- source_page : numéro de page dans le doc, null si non applicable
+Génère entre 3 et 8 éléments par catégorie. Omets les catégories vides (tableau vide []).`
+
+function stripCodeFences(raw: string): string {
+  return raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+}
+
+async function analyzeAndCreateDrafts(
+  importId: string,
+  transcription: string,
+  importType: string | null,
+): Promise<number> {
+  const admin = createAdminClient()
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 4096,
+    system: ANALYSIS_SYSTEM,
+    messages: [{
+      role: 'user',
+      content: `Type d'import : ${importType ?? 'autre'}\n\n---\n\n${transcription}`,
+    }],
+  })
+
+  const block = response.content[0]
+  if (block.type !== 'text') throw new Error('Réponse Claude inattendue (pas de texte)')
+
+  let parsed: ClaudeJson
+  try {
+    parsed = JSON.parse(stripCodeFences(block.text))
+  } catch {
+    throw new Error(`JSON Claude invalide : ${block.text.slice(0, 200)}`)
+  }
+
+  // Idempotence : supprimer les drafts existants
+  await admin.from('import_fiches_draft').delete().eq('import_id', importId)
+
+  const TYPE_MAP: Record<keyof ClaudeJson, string> = {
+    objections:   'objection',
+    faq:          'guide_situation',
+    moments_cles: 'cas_client',
+    angles_morts: 'missing_info',
+  }
+
+  const rows: object[] = []
+  for (const [key, items] of Object.entries(parsed) as [keyof ClaudeJson, DraftItem[]][]) {
+    if (!Array.isArray(items)) continue
+    for (const item of items) {
+      if (!item.title || !item.content) continue
+      rows.push({
+        import_id: importId,
+        type: TYPE_MAP[key],
+        title: String(item.title).slice(0, 255),
+        content: String(item.content),
+        confidence: typeof item.confidence === 'number'
+          ? Math.min(1, Math.max(0, item.confidence))
+          : 0.5,
+        source_timestamp_sec: item.source_timestamp_sec ?? null,
+        source_page: item.source_page ?? null,
+        status: 'pending',
+      })
+    }
+  }
+
+  if (rows.length > 0) {
+    const { error } = await admin.from('import_fiches_draft').insert(rows)
+    if (error) throw new Error(`Insert drafts impossible : ${error.message}`)
+  }
+
+  return rows.length
+}
+
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 export async function POST(
@@ -176,7 +283,16 @@ export async function POST(
       error_message: null,
     }).eq('id', id)
 
-    return Response.json({ success: true })
+    // ── Step 2 : Analyse Claude → drafts ──────────────────────────────────
+    const fichesCount = await analyzeAndCreateDrafts(id, transcription, imp.import_type)
+
+    await admin.from('imports').update({
+      status: 'ready',
+      fiches_count: fichesCount,
+      error_message: null,
+    }).eq('id', id)
+
+    return Response.json({ success: true, fiches_count: fichesCount })
 
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erreur inconnue'
