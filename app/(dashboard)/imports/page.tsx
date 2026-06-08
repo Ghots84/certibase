@@ -50,6 +50,7 @@ export default function ImportsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [retrying, setRetrying] = useState<Set<string>>(new Set())
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const currentMode = FILE_MODES.find(m => m.value === mode)!
@@ -57,7 +58,14 @@ export default function ImportsPage() {
   useEffect(() => {
     async function load() {
       const res = await fetch('/api/imports')
-      if (res.ok) setImports(await res.json())
+      if (!res.ok) return
+      const data: Import[] = await res.json()
+      setImports(data)
+      // Poll tant qu'au moins un import est en cours de traitement
+      const inProgress = data.some(i => i.status === 'extracting' || i.status === 'analyzing')
+      if (inProgress) {
+        setTimeout(() => setRefreshKey(k => k + 1), 3000)
+      }
     }
     load()
   }, [refreshKey])
@@ -103,6 +111,19 @@ export default function ImportsPage() {
       setRefreshKey(k => k + 1)
     }
     setLoading(false)
+  }
+
+  async function retryImport(importId: string) {
+    setRetrying(prev => new Set(prev).add(importId))
+    const res = await fetch(`/api/imports/${importId}/process`, { method: 'POST' })
+    const data = await res.json()
+    if (!res.ok) {
+      window.cbToast(data.error ?? 'Erreur lors du relancement', 'error')
+    } else {
+      window.cbToast('Pipeline relancé')
+      setRefreshKey(k => k + 1)
+    }
+    setRetrying(prev => { const s = new Set(prev); s.delete(importId); return s })
   }
 
   function handleDragOver(e: React.DragEvent) {
@@ -362,21 +383,42 @@ export default function ImportsPage() {
                     </p>
                   </div>
 
-                  {/* Badge statut */}
-                  <span
-                    style={{
-                      padding: '3px 10px',
-                      borderRadius: 'var(--radius-pill)',
-                      background: status.bg,
-                      color: status.color,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {status.label}
-                  </span>
+                  {/* Badge statut + bouton Relancer */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {imp.status === 'error' && (
+                      <button
+                        onClick={() => retryImport(imp.id)}
+                        disabled={retrying.has(imp.id)}
+                        style={{
+                          padding: '3px 10px',
+                          borderRadius: 'var(--radius-pill)',
+                          border: '1px solid var(--border)',
+                          background: 'var(--surface)',
+                          color: 'var(--text-muted)',
+                          fontSize: 12,
+                          fontWeight: 500,
+                          cursor: retrying.has(imp.id) ? 'not-allowed' : 'pointer',
+                          whiteSpace: 'nowrap',
+                          transition: 'background 0.12s ease',
+                        }}
+                      >
+                        {retrying.has(imp.id) ? '...' : 'Relancer'}
+                      </button>
+                    )}
+                    <span
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: 'var(--radius-pill)',
+                        background: status.bg,
+                        color: status.color,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {status.label}
+                    </span>
+                  </div>
                 </div>
               )
             })}

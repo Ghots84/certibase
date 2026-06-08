@@ -66,5 +66,12 @@ export async function POST(request: Request) {
     return Response.json({ error: dbError.message }, { status: 500 })
   }
 
+  // Trigger pipeline asynchronously
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  fetch(`${baseUrl}/api/imports/${record.id}/process`, {
+    method: 'POST',
+    headers: { 'x-internal-pipeline': process.env.PIPELINE_SECRET ?? '' },
+  }).catch(() => {})
+
   return Response.json(record)
 }
