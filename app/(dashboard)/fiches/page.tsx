@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { Fiche, FicheType } from '@/lib/supabase/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -54,16 +54,89 @@ const PROFIL_LABEL: Record<string, string> = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function parseContent(content: string): { summary: string; bullets: string[] } {
-  const lines = content.split('\n').map(l => l.trim()).filter(Boolean)
-  const bullets = lines
-    .filter(l => l.startsWith('- ') || l.startsWith('• '))
-    .map(l => l.replace(/^[-•]\s+/, ''))
-  const textLines = lines.filter(l => !l.startsWith('- ') && !l.startsWith('• '))
-  return {
-    summary: textLines.join(' ').slice(0, 400),
-    bullets,
+function fireToast(msg: string) {
+  if (typeof window !== 'undefined' && typeof (window as Window & { cbToast?: (m: string) => void }).cbToast === 'function') {
+    ;(window as Window & { cbToast?: (m: string) => void }).cbToast!(msg)
   }
+}
+
+// ── Markdown renderer ─────────────────────────────────────────────────────────
+
+function renderInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
+  if (parts.length === 1) return text
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**') && part.length > 4)
+          return <strong key={i} style={{ fontWeight: 700, color: 'var(--text)' }}>{part.slice(2, -2)}</strong>
+        if (part.startsWith('*') && part.endsWith('*') && part.length > 2)
+          return <em key={i} style={{ fontStyle: 'italic' }}>{part.slice(1, -1)}</em>
+        return part
+      })}
+    </>
+  )
+}
+
+function MarkdownContent({ content }: { content: string }) {
+  const blocks: React.ReactNode[] = []
+  let bulletBuf: string[] = []
+  let k = 0
+
+  function flushBullets() {
+    if (!bulletBuf.length) return
+    blocks.push(
+      <ul key={k++} style={{ margin: '2px 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {bulletBuf.map((b, i) => (
+          <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+            <span style={{
+              width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
+              background: 'var(--primary)', marginTop: 7,
+              display: 'inline-block',
+            }} />
+            <span style={{ color: 'var(--text-muted)', fontSize: 13.5, lineHeight: 1.55 }}>{renderInline(b)}</span>
+          </li>
+        ))}
+      </ul>
+    )
+    bulletBuf = []
+  }
+
+  for (const raw of content.split('\n')) {
+    const line = raw.trim()
+
+    if (line.startsWith('- ') || line.startsWith('• ')) {
+      bulletBuf.push(line.replace(/^[-•]\s+/, ''))
+    } else if (/^#{1,3} /.test(line)) {
+      flushBullets()
+      const level = (line.match(/^(#{1,3}) /)?.[1].length ?? 1) as 1 | 2 | 3
+      const text = line.replace(/^#{1,3} /, '')
+      const sz: Record<1 | 2 | 3, number> = { 1: 16, 2: 14, 3: 12 }
+      blocks.push(
+        <p key={k++} style={{
+          fontSize: sz[level], fontWeight: 700,
+          color: level === 3 ? 'var(--text-faint)' : 'var(--text)',
+          margin: blocks.length > 0 ? '10px 0 2px' : '0 0 2px', lineHeight: 1.3,
+          textTransform: level === 3 ? 'uppercase' : 'none',
+          letterSpacing: level === 3 ? '0.06em' : 'normal',
+        }}>
+          {renderInline(text)}
+        </p>
+      )
+    } else if (line === '') {
+      flushBullets()
+    } else {
+      flushBullets()
+      blocks.push(
+        <p key={k++} style={{ color: 'var(--text)', fontSize: 13.5, lineHeight: 1.65, margin: 0 }}>
+          {renderInline(line)}
+        </p>
+      )
+    }
+  }
+  flushBullets()
+
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{blocks}</div>
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -98,18 +171,16 @@ function FicheCard({
       role="button"
       tabIndex={0}
       onClick={onClick}
-      onKeyDown={e => e.key === 'Enter' && onClick()}
+      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onClick()}
       style={{
         background: 'var(--surface)',
-        border: active
-          ? '1.5px solid var(--primary)'
-          : '1px solid var(--border)',
+        border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
         borderRadius: 'var(--radius)',
-        padding: '14px 15px',
+        padding: '12px 14px',
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
+        gap: 7,
         boxShadow: active ? '0 0 0 1px var(--primary)' : 'none',
         transform: 'translateY(0)',
         transition: 'all 0.12s ease',
@@ -129,49 +200,56 @@ function FicheCard({
         }
       }}
     >
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-        <span className="mono" style={{ fontSize: 10.5, color: 'var(--text-faint)', flexShrink: 0 }}>
-          #{fiche.id.slice(0, 8)}
+      {/* Ligne 1 : type chip + statut */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+        <span style={{
+          padding: '2px 8px', borderRadius: 'var(--radius-pill)',
+          background: typeMeta.bg, color: typeMeta.color,
+          fontSize: 11, fontWeight: 600, flexShrink: 0,
+        }}>
+          {typeMeta.label}
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
           <span style={{
-            width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+            width: 6, height: 6, borderRadius: '50%',
             background: isPublished ? 'var(--success)' : 'var(--warning)',
             display: 'inline-block',
           }} />
           <span style={{
-            fontSize: 11, fontWeight: 600,
+            fontSize: 11, fontWeight: 500,
             color: isPublished ? 'var(--success)' : 'var(--warning)',
           }}>
             {isPublished ? 'Validée' : 'À valider'}
           </span>
         </div>
-        <span style={{
-          marginLeft: 'auto', padding: '1px 7px', borderRadius: 'var(--radius-pill)',
-          background: typeMeta.bg, color: typeMeta.color, fontSize: 11, fontWeight: 600,
-          flexShrink: 0,
-        }}>
-          {typeMeta.label}
-        </span>
       </div>
 
-      {/* Titre */}
-      <p className="font-semibold" style={{ color: 'var(--text)', fontSize: 14, margin: 0, lineHeight: 1.4 }}>
+      {/* Ligne 2 : titre (2 lignes max) */}
+      <p style={{
+        color: 'var(--text)', fontSize: 13.5, fontWeight: 600,
+        margin: 0, lineHeight: 1.4,
+        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+      }}>
         {fiche.title}
       </p>
 
-      {/* Résumé */}
+      {/* Ligne 3 : hint contenu — 1 ligne, très subtil */}
       <p style={{
-        color: 'var(--text-muted)', fontSize: 12.5, margin: 0, lineHeight: 1.5,
-        display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+        color: 'var(--text-faint)', fontSize: 12, margin: 0, lineHeight: 1.4,
+        display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical',
         overflow: 'hidden',
       }}>
-        {fiche.content}
+        {fiche.content.replace(/\n/g, ' ')}
       </p>
 
-      {/* Barre de confiance */}
-      <ConfidenceBar value={fiche.confidence_threshold} />
+      {/* Ligne 4 : ID micro + confiance */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+        <span className="mono" style={{ fontSize: 10, color: 'var(--text-faint)' }}>
+          #{fiche.id.slice(0, 8)}
+        </span>
+        <ConfidenceBar value={fiche.confidence_threshold} />
+      </div>
     </div>
   )
 }
@@ -179,13 +257,11 @@ function FicheCard({
 function BlindspotPlaceholder() {
   return (
     <div style={{
-      borderLeft: '3px solid var(--primary)',
       borderRadius: 'var(--radius)',
       padding: '14px 18px',
       background: 'var(--surface)',
       border: '1px solid var(--border)',
-      borderLeftWidth: 3,
-      borderLeftColor: 'var(--primary)',
+      borderLeft: '3px solid var(--primary)',
       marginTop: 32,
     }}>
       <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>
@@ -208,16 +284,18 @@ function FicheDrawer({
   const isPublished = fiche.status === 'published'
   const pct = Math.round(fiche.confidence_threshold * 100)
   const confColor = pct >= 85 ? 'var(--success)' : pct >= 70 ? 'var(--warning)' : 'var(--danger)'
-  const { summary, bullets } = parseContent(fiche.content)
   const srcLabel = SOURCE_LABEL[fiche.source ?? ''] ?? fiche.source ?? '—'
   const srcIcon = SOURCE_ICON[fiche.source ?? ''] ?? '📄'
   const profilLabel = PROFIL_LABEL[fiche.profil_cible ?? ''] ?? fiche.profil_cible ?? 'Tous les profils'
 
-  function toast(msg: string) {
-    if (typeof window !== 'undefined' && typeof (window as Window & { cbToast?: (m: string) => void }).cbToast === 'function') {
-      (window as Window & { cbToast?: (m: string) => void }).cbToast!(msg)
+  // Close on Escape
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
     }
-  }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [onClose])
 
   return (
     <div style={{
@@ -308,29 +386,8 @@ function FicheDrawer({
       {/* Corps scrollable */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Contenu / Résumé */}
-        <div>
-          <p style={{ color: 'var(--text)', fontSize: 13.5, lineHeight: 1.6, margin: 0 }}>
-            {summary || fiche.content}
-          </p>
-        </div>
-
-        {/* Points clés */}
-        {bullets.length > 0 && (
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>
-              Points clés
-            </p>
-            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 5 }}>
-              {bullets.map((b, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
-                  <span style={{ color: 'var(--success)', fontSize: 12, flexShrink: 0, marginTop: 2 }}>✓</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{b}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* Contenu */}
+        <MarkdownContent content={fiche.content} />
 
         {/* Source */}
         <div>
@@ -404,7 +461,7 @@ function FicheDrawer({
         gap: 8,
       }}>
         <button
-          onClick={() => toast('Duplication — disponible en Story 3.3')}
+          onClick={() => fireToast('Duplication — disponible en Story 3.3')}
           style={{
             flex: 1, padding: '8px 0',
             borderRadius: 'var(--radius)', border: '1px solid var(--border)',
@@ -416,7 +473,7 @@ function FicheDrawer({
         </button>
         {isAdmin && fiche.status === 'draft' && (
           <button
-            onClick={() => toast('Validation — disponible en Story 3.3')}
+            onClick={() => fireToast('Validation — disponible en Story 3.3')}
             style={{
               flex: 1, padding: '8px 0',
               borderRadius: 'var(--radius)', border: 'none',
@@ -429,7 +486,7 @@ function FicheDrawer({
         )}
         {isAdmin && fiche.status === 'published' && (
           <button
-            onClick={() => toast('Édition — disponible en Story 3.3')}
+            onClick={() => fireToast('Édition — disponible en Story 3.3')}
             style={{
               flex: 1, padding: '8px 0',
               borderRadius: 'var(--radius)', border: 'none',
@@ -450,39 +507,66 @@ function FicheDrawer({
 export default function FichesPage() {
   const [fiches, setFiches] = useState<Fiche[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<Category>('Toutes')
   const [activeId, setActiveId] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
+  // Single effect — fetch /api/me first to know the role, then load fiches accordingly
   useEffect(() => {
-    async function load() {
-      const res = await fetch('/api/fiches')
+    async function loadAll() {
+      // 1. Resolve current user role
+      let admin = false
+      const meRes = await fetch('/api/me')
+      if (meRes.ok) {
+        const me = await meRes.json()
+        if (me?.role === 'admin') {
+          admin = true
+          setIsAdmin(true)
+        }
+      }
+
+      // 2. Load fiches — admins also receive drafts
+      const url = admin ? '/api/fiches?include_drafts=1' : '/api/fiches'
+      const res = await fetch(url)
       if (res.ok) {
         const data: Fiche[] = await res.json()
         setFiches(data)
+      } else {
+        setError('Impossible de charger les fiches. Veuillez réessayer.')
       }
       setLoading(false)
     }
-    load()
-  }, [])
-
-  useEffect(() => {
-    async function checkAdmin() {
-      const r = await fetch('/api/me')
-      if (r.ok) {
-        const d = await r.json()
-        if (d?.role === 'admin') setIsAdmin(true)
-      }
-    }
-    checkAdmin()
+    loadAll()
   }, [])
 
   const filtered = fiches
-    .filter(f => category === 'Toutes' || TYPE_TO_CATEGORY[f.type as FicheType ?? ''] === category)
+    .filter(f => category === 'Toutes' || TYPE_TO_CATEGORY[(f.type ?? '') as FicheType] === category)
     .filter(f => !query || (f.title + ' ' + f.content).toLowerCase().includes(query.toLowerCase()))
 
   const activeFiche = fiches.find(f => f.id === activeId) ?? null
+
+  // Build the subtitle line
+  const subtitle = (() => {
+    if (loading) return 'Chargement...'
+    const published = fiches.filter(f => f.status === 'published').length
+    const drafts = fiches.filter(f => f.status === 'draft').length
+    const hasFilter = category !== 'Toutes' || query.trim() !== ''
+    const filteredCount = filtered.length
+    if (hasFilter) {
+      const plural = filteredCount !== 1
+      return `${filteredCount} fiche${plural ? 's' : ''} — ${published} publiée${published !== 1 ? 's' : ''}${drafts > 0 ? `, ${drafts} à valider` : ''}`
+    }
+    if (isAdmin && drafts > 0) {
+      return `${published} publiée${published !== 1 ? 's' : ''} · ${drafts} à valider`
+    }
+    return `${published} fiche${published !== 1 ? 's' : ''} publiée${published !== 1 ? 's' : ''}`
+  })()
+
+  const handleToggleFiche = useCallback((id: string) => {
+    setActiveId(prev => prev === id ? null : id)
+  }, [])
 
   return (
     <div className="p-7 cb-fade-in">
@@ -493,11 +577,12 @@ export default function FichesPage() {
             Fiches de connaissance
           </h1>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            {loading ? 'Chargement...' : `${fiches.length} fiche${fiches.length !== 1 ? 's' : ''} publiée${fiches.length !== 1 ? 's' : ''}`}
+            {subtitle}
           </p>
         </div>
         {isAdmin && (
           <button
+            onClick={() => fireToast('Création de fiche — disponible en Story 3.3')}
             style={{
               padding: '8px 16px', borderRadius: 'var(--radius-pill)',
               background: 'var(--primary)', color: '#fff', border: 'none',
@@ -561,6 +646,13 @@ export default function FichesPage() {
             <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-faint)', fontSize: 14 }}>
               Chargement des fiches...
             </div>
+          ) : error ? (
+            <div style={{
+              textAlign: 'center', padding: '60px 0', color: 'var(--danger)', fontSize: 14,
+              background: 'var(--danger-soft)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--danger)',
+            }}>
+              {error}
+            </div>
           ) : filtered.length === 0 ? (
             <div style={{
               textAlign: 'center', padding: '60px 0', color: 'var(--text-faint)', fontSize: 14,
@@ -580,13 +672,13 @@ export default function FichesPage() {
                   key={fiche.id}
                   fiche={fiche}
                   active={activeId === fiche.id}
-                  onClick={() => setActiveId(prev => prev === fiche.id ? null : fiche.id)}
+                  onClick={() => handleToggleFiche(fiche.id)}
                 />
               ))}
             </div>
           )}
 
-          {!loading && <BlindspotPlaceholder />}
+          {!loading && !error && <BlindspotPlaceholder />}
         </div>
 
         {/* Drawer latéral */}
