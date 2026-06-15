@@ -125,6 +125,8 @@ async function iceScrum<T = unknown>(method: string, endpoint: string, body?: ob
 
 // ── Sync logic ─────────────────────────────────────────────────────────────
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function pushLocalStories(stories: LocalStory[], syncState: SyncState): Promise<SyncState> {
   for (const story of stories) {
     const relPath = path.relative(PROJECT_ROOT, story.filePath).replace(/\\/g, '/');
@@ -146,6 +148,8 @@ async function pushLocalStories(stories: LocalStory[], syncState: SyncState): Pr
       syncState[relPath] = id;
       console.log(`    → Created with ID ${id}`);
     }
+
+    await sleep(400); // évite le rate-limit IceScrum (429)
   }
   return syncState;
 }
