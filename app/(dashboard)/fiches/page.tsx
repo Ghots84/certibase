@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import type { Fiche, FicheType } from '@/lib/supabase/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -44,6 +44,15 @@ const SOURCE_ICON: Record<string, string> = {
   sales_call:   '📞',
   doc:          '📄',
   n8n:          '🤖',
+}
+
+const CATEGORY_META: Record<Category, { icon: string; description: string }> = {
+  'Toutes':        { icon: '📚', description: 'Toutes les fiches disponibles' },
+  'Sales':         { icon: '💼', description: 'Objections, concurrents, cas clients' },
+  'Produit':       { icon: '🏢', description: 'Documentation et guides CertiPlace' },
+  'Réglementaire': { icon: '⚖️', description: 'Guides et situations réglementaires' },
+  'Veille':        { icon: '🔭', description: 'Veille marché et secteur' },
+  'Support':       { icon: '🛟', description: 'Support et assistance client' },
 }
 
 const PROFIL_LABEL: Record<string, string> = {
@@ -269,6 +278,59 @@ function BlindspotPlaceholder() {
       <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>
         ✦ Angles morts — disponible en Story 3.4
       </p>
+    </div>
+  )
+}
+
+function CategoryCard({
+  cat, count, active, onClick,
+}: {
+  cat: Category
+  count: number
+  active: boolean
+  onClick: () => void
+}) {
+  const meta = CATEGORY_META[cat]
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onClick()}
+      style={{
+        background: active ? 'var(--primary-soft)' : 'var(--surface)',
+        border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '18px 14px 14px',
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        textAlign: 'center',
+        gap: 5,
+        transition: 'all 0.15s ease',
+        boxShadow: active ? '0 0 0 1px var(--primary)' : 'none',
+      }}
+      onMouseEnter={e => {
+        if (!active) (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 14px rgba(0,0,0,0.08)'
+      }}
+      onMouseLeave={e => {
+        if (!active) (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'
+      }}
+    >
+      <span style={{ fontSize: 24, lineHeight: 1, marginBottom: 2 }}>{meta.icon}</span>
+      <p style={{ margin: 0, fontWeight: 700, fontSize: 13.5, color: active ? 'var(--primary)' : 'var(--text)' }}>
+        {cat}
+      </p>
+      <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-faint)', lineHeight: 1.4, minHeight: 30 }}>
+        {meta.description}
+      </p>
+      <span style={{
+        marginTop: 6, fontSize: 12, fontWeight: 600,
+        color: active ? 'var(--primary)' : 'var(--text-muted)',
+      }}>
+        {count} fiche{count !== 1 ? 's' : ''}
+      </span>
     </div>
   )
 }
@@ -566,6 +628,16 @@ export default function FichesPage() {
     return `${published} fiche${published !== 1 ? 's' : ''} publiée${published !== 1 ? 's' : ''}`
   })()
 
+  const categoryCounts = useMemo(() => {
+    const counts = Object.fromEntries(CATEGORIES.map(c => [c, 0])) as Record<Category, number>
+    counts['Toutes'] = fiches.length
+    for (const f of fiches) {
+      const cat = TYPE_TO_CATEGORY[(f.type ?? '') as FicheType]
+      if (cat) counts[cat]++
+    }
+    return counts
+  }, [fiches])
+
   const handleToggleFiche = useCallback((id: string) => {
     setActiveId(prev => prev === id ? null : id)
   }, [])
@@ -598,51 +670,42 @@ export default function FichesPage() {
         )}
       </div>
 
-      {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 340 }}>
-          <span style={{
-            position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
-            color: 'var(--text-faint)', fontSize: 14, pointerEvents: 'none',
-          }}>🔍</span>
-          <input
-            type="search"
-            placeholder="Rechercher..."
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            style={{
-              width: '100%', padding: '7px 12px 7px 32px',
-              borderRadius: 'var(--radius)', border: '1px solid var(--border)',
-              background: 'var(--bg)', color: 'var(--text)', fontSize: 13.5,
-              outline: 'none',
-            }}
-          />
-        </div>
+      {/* Recherche */}
+      <div style={{ position: 'relative', marginBottom: 20, maxWidth: 480 }}>
+        <span style={{
+          position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+          color: 'var(--text-faint)', fontSize: 15, pointerEvents: 'none',
+        }}>🔍</span>
+        <input
+          type="search"
+          placeholder="Rechercher dans les fiches..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          style={{
+            width: '100%', padding: '9px 14px 9px 38px',
+            borderRadius: 'var(--radius)', border: '1px solid var(--border)',
+            background: 'var(--bg)', color: 'var(--text)', fontSize: 14,
+            outline: 'none',
+          }}
+        />
+      </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-faint)', whiteSpace: 'nowrap', userSelect: 'none' }}>
-            Catégorie
-          </span>
-        <div style={{ display: 'flex', gap: 2, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 3 }}>
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              style={{
-                padding: '5px 11px', borderRadius: 'calc(var(--radius) - 2px)',
-                border: 'none',
-                background: category === cat ? 'var(--primary)' : 'transparent',
-                color: category === cat ? '#fff' : 'var(--text-muted)',
-                fontSize: 12.5, fontWeight: category === cat ? 600 : 400,
-                cursor: 'pointer', transition: 'all 0.12s ease',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-        </div>
+      {/* Grille catégories */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))',
+        gap: 12,
+        marginBottom: 28,
+      }}>
+        {CATEGORIES.map(cat => (
+          <CategoryCard
+            key={cat}
+            cat={cat}
+            count={categoryCounts[cat]}
+            active={category === cat}
+            onClick={() => setCategory(cat === category && cat !== 'Toutes' ? 'Toutes' : cat)}
+          />
+        ))}
       </div>
 
       {/* Contenu principal — flex row si drawer ouvert */}
