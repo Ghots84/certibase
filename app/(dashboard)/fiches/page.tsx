@@ -573,7 +573,7 @@ export default function FichesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState<Category>('Toutes')
+  const [category, setCategory] = useState<Category | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
@@ -605,27 +605,25 @@ export default function FichesPage() {
     loadAll()
   }, [])
 
+  const showGrid = category !== null || query.trim() !== ''
+
   const filtered = fiches
-    .filter(f => category === 'Toutes' || TYPE_TO_CATEGORY[(f.type ?? '') as FicheType] === category)
+    .filter(f => !category || category === 'Toutes' || TYPE_TO_CATEGORY[(f.type ?? '') as FicheType] === category)
     .filter(f => !query || (f.title + ' ' + f.content).toLowerCase().includes(query.toLowerCase()))
 
   const activeFiche = fiches.find(f => f.id === activeId) ?? null
 
-  // Build the subtitle line
   const subtitle = (() => {
     if (loading) return 'Chargement...'
     const published = fiches.filter(f => f.status === 'published').length
     const drafts = fiches.filter(f => f.status === 'draft').length
-    const hasFilter = category !== 'Toutes' || query.trim() !== ''
-    const filteredCount = filtered.length
-    if (hasFilter) {
-      const plural = filteredCount !== 1
-      return `${filteredCount} fiche${plural ? 's' : ''} — ${published} publiée${published !== 1 ? 's' : ''}${drafts > 0 ? `, ${drafts} à valider` : ''}`
+    if (!showGrid) {
+      return isAdmin && drafts > 0
+        ? `${published} publiée${published !== 1 ? 's' : ''} · ${drafts} à valider`
+        : `${fiches.length} fiche${fiches.length !== 1 ? 's' : ''} · ${CATEGORIES.length - 1} catégories`
     }
-    if (isAdmin && drafts > 0) {
-      return `${published} publiée${published !== 1 ? 's' : ''} · ${drafts} à valider`
-    }
-    return `${published} fiche${published !== 1 ? 's' : ''} publiée${published !== 1 ? 's' : ''}`
+    const n = filtered.length
+    return `${n} fiche${n !== 1 ? 's' : ''}${drafts > 0 && isAdmin ? ` · ${drafts} à valider` : ''}`
   })()
 
   const categoryCounts = useMemo(() => {
@@ -642,17 +640,36 @@ export default function FichesPage() {
     setActiveId(prev => prev === id ? null : id)
   }, [])
 
+  function goHome() {
+    setCategory(null)
+    setQuery('')
+    setActiveId(null)
+  }
+
   return (
     <div className="p-7 cb-fade-in">
       {/* En-tête */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)', letterSpacing: 'var(--head-spacing)' }}>
-            Fiches de connaissance
+          {showGrid && (
+            <button
+              onClick={goHome}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 6px',
+                color: 'var(--text-faint)', fontSize: 12.5, fontWeight: 500,
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}
+            >
+              ← Catégories
+            </button>
+          )}
+          <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text)', letterSpacing: 'var(--head-spacing)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {showGrid && category && category !== 'Toutes'
+              ? <><span style={{ fontSize: 22 }}>{CATEGORY_META[category].icon}</span>{category}</>
+              : 'Fiches de connaissance'
+            }
           </h1>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            {subtitle}
-          </p>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
         </div>
         {isAdmin && (
           <button
@@ -671,95 +688,99 @@ export default function FichesPage() {
       </div>
 
       {/* Recherche */}
-      <div style={{ position: 'relative', marginBottom: 20, maxWidth: 480 }}>
+      <div style={{ position: 'relative', marginBottom: showGrid ? 20 : 28, maxWidth: showGrid ? 480 : 560 }}>
         <span style={{
           position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
           color: 'var(--text-faint)', fontSize: 15, pointerEvents: 'none',
         }}>🔍</span>
         <input
           type="search"
-          placeholder="Rechercher dans les fiches..."
+          placeholder={category && category !== 'Toutes' ? `Rechercher dans ${category}...` : 'Rechercher dans toutes les fiches...'}
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={e => {
+            setQuery(e.target.value)
+            if (e.target.value.trim() && category === null) setCategory('Toutes')
+          }}
           style={{
-            width: '100%', padding: '9px 14px 9px 38px',
+            width: '100%', padding: '10px 14px 10px 40px',
             borderRadius: 'var(--radius)', border: '1px solid var(--border)',
             background: 'var(--bg)', color: 'var(--text)', fontSize: 14,
             outline: 'none',
+            boxShadow: !showGrid ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
           }}
         />
       </div>
 
-      {/* Grille catégories */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))',
-        gap: 12,
-        marginBottom: 28,
-      }}>
-        {CATEGORIES.map(cat => (
-          <CategoryCard
-            key={cat}
-            cat={cat}
-            count={categoryCounts[cat]}
-            active={category === cat}
-            onClick={() => setCategory(cat === category && cat !== 'Toutes' ? 'Toutes' : cat)}
-          />
-        ))}
-      </div>
-
-      {/* Contenu principal — flex row si drawer ouvert */}
-      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-        {/* Zone grille + blindspot */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-faint)', fontSize: 14 }}>
-              Chargement des fiches...
-            </div>
-          ) : error ? (
-            <div style={{
-              textAlign: 'center', padding: '60px 0', color: 'var(--danger)', fontSize: 14,
-              background: 'var(--danger-soft)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--danger)',
-            }}>
-              {error}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div style={{
-              textAlign: 'center', padding: '60px 0', color: 'var(--text-faint)', fontSize: 14,
-              background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)',
-            }}>
-              {fiches.length === 0 ? 'Aucune fiche publiée pour le moment' : 'Aucune fiche ne correspond à votre recherche'}
-            </div>
-          ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(auto-fill, minmax(${activeId ? '240px' : '270px'}, 1fr))`,
-              gap: 14,
-              transition: 'grid-template-columns 0.2s ease',
-            }}>
-              {filtered.map(fiche => (
-                <FicheCard
-                  key={fiche.id}
-                  fiche={fiche}
-                  active={activeId === fiche.id}
-                  onClick={() => handleToggleFiche(fiche.id)}
-                />
-              ))}
-            </div>
-          )}
-
-          {!loading && !error && <BlindspotPlaceholder />}
+      {/* Vue HOME — grille de cards catégories pleine page */}
+      {!showGrid && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+          gap: 16,
+        }}>
+          {CATEGORIES.map(cat => (
+            <CategoryCard
+              key={cat}
+              cat={cat}
+              count={categoryCounts[cat]}
+              active={false}
+              onClick={() => setCategory(cat)}
+            />
+          ))}
         </div>
+      )}
 
-        {/* Drawer latéral */}
-        {activeFiche && (
-          <FicheDrawer
-            fiche={activeFiche}
-            isAdmin={isAdmin}
-            onClose={() => setActiveId(null)}
-          />
-        )}
-      </div>
+      {/* Vue GRID — fiches filtrées + drawer */}
+      {showGrid && (
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-faint)', fontSize: 14 }}>
+                Chargement des fiches...
+              </div>
+            ) : error ? (
+              <div style={{
+                textAlign: 'center', padding: '60px 0', color: 'var(--danger)', fontSize: 14,
+                background: 'var(--danger-soft)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--danger)',
+              }}>
+                {error}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div style={{
+                textAlign: 'center', padding: '60px 0', color: 'var(--text-faint)', fontSize: 14,
+                background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)',
+              }}>
+                {fiches.length === 0 ? 'Aucune fiche publiée pour le moment' : 'Aucune fiche ne correspond à votre recherche'}
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(auto-fill, minmax(${activeId ? '240px' : '270px'}, 1fr))`,
+                gap: 14,
+                transition: 'grid-template-columns 0.2s ease',
+              }}>
+                {filtered.map(fiche => (
+                  <FicheCard
+                    key={fiche.id}
+                    fiche={fiche}
+                    active={activeId === fiche.id}
+                    onClick={() => handleToggleFiche(fiche.id)}
+                  />
+                ))}
+              </div>
+            )}
+            {!loading && !error && <BlindspotPlaceholder />}
+          </div>
+
+          {activeFiche && (
+            <FicheDrawer
+              fiche={activeFiche}
+              isAdmin={isAdmin}
+              onClose={() => setActiveId(null)}
+            />
+          )}
+        </div>
+      )}
     </div>
   )
 }
