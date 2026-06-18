@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-type Profil = 'csm' | 'sales' | 'ops' | 'admin' | 'all'
+type Profil = 'csm' | 'sales' | 'ops' | 'admin'
 
 type Source = {
   id: string
@@ -24,9 +24,8 @@ type Message = {
 const PROFILS: { value: Profil; label: string; color: string }[] = [
   { value: 'csm',   label: 'CSM',   color: '#2D7DD2' },
   { value: 'sales', label: 'Sales', color: '#E8651E' },
-  { value: 'ops',   label: 'Ops',   color: '#7A5AF8' },
-  { value: 'admin', label: 'Admin', color: '#1F8A5B' },
-  { value: 'all',   label: 'Tous',  color: '#5B6675' },
+  { value: 'ops',   label: 'Ops',   color: '#1F8A5B' },
+  { value: 'admin', label: 'Admin', color: '#7A5AF8' },
 ]
 
 const TYPE_LABELS: Record<string, string> = {
@@ -38,15 +37,32 @@ const TYPE_LABELS: Record<string, string> = {
   veille:          'Veille',
 }
 
-const SUGGESTIONS = [
-  { icon: '💬', text: 'Quelles sont les différences Standard / Premium ?' },
-  { icon: '💰', text: "Comment gérer l'objection sur le prix ?" },
-  { icon: '⚙️', text: "Comment configurer l'espace candidat ?" },
-]
+const PROFIL_SUGGESTIONS: Record<Profil, { icon: string; text: string }[]> = {
+  csm: [
+    { icon: '⚙️', text: "Comment configurer l'espace candidat ?" },
+    { icon: '📋', text: 'Quelles sont les étapes du parcours de certification ?' },
+    { icon: '🔄', text: 'Comment gérer un dossier en attente de validation ?' },
+  ],
+  sales: [
+    { icon: '💰', text: "Comment gérer l'objection sur le prix ?" },
+    { icon: '🏆', text: 'Quelles sont les différences Standard / Premium ?' },
+    { icon: '🤝', text: 'Quels arguments face à un concurrent ?' },
+  ],
+  ops: [
+    { icon: '📊', text: 'Quels sont les indicateurs de suivi à surveiller ?' },
+    { icon: '🔧', text: 'Comment résoudre un problème technique courant ?' },
+    { icon: '📝', text: 'Quelles sont les procédures de validation interne ?' },
+  ],
+  admin: [
+    { icon: '👥', text: 'Comment gérer les accès utilisateurs ?' },
+    { icon: '📈', text: "Quel est l'état de la base de connaissance ?" },
+    { icon: '🔍', text: 'Quelles fiches sont en attente de validation ?' },
+  ],
+}
 
-function IconBot() {
+function IconBot({ size = 16 }: { size?: number }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7H3a7 7 0 0 1 7-7h1V5.73A2 2 0 0 1 10 4a2 2 0 0 1 2-2z" />
       <path d="M5 14v7h14v-7" />
       <path d="M9 18v2" />
@@ -201,13 +217,30 @@ function AssistantBubble({ msg }: { msg: Message }) {
 }
 
 export default function AssistantPage() {
-  const [profil, setProfil] = useState<Profil>('all')
+  const [profil, setProfil] = useState<Profil>('csm')
+  const [firstName, setFirstName] = useState<string>('')
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [inputFocused, setInputFocused] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    async function loadUser() {
+      const res = await fetch('/api/me')
+      if (res.ok) {
+        const me = await res.json()
+        const name = (me.full_name ?? '').split(' ')[0] || me.email?.split('@')[0] || ''
+        setFirstName(name)
+        const roleToProfile: Record<string, Profil> = {
+          admin: 'admin', csm: 'csm', sales: 'sales', new: 'csm',
+        }
+        setProfil(roleToProfile[me.role] ?? 'csm')
+      }
+    }
+    loadUser()
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -219,8 +252,13 @@ export default function AssistantPage() {
     }
   }
 
-  const sendMessage = useCallback(async () => {
-    const question = input.trim()
+  function handleProfilChange(p: Profil) {
+    setProfil(p)
+    setMessages([])
+  }
+
+  const sendMessage = useCallback(async (overrideText?: string) => {
+    const question = (overrideText ?? input).trim()
     if (!question || loading) return
 
     const userMsg: Message = { id: crypto.randomUUID(), role: 'user', text: question }
@@ -291,8 +329,11 @@ export default function AssistantPage() {
       setLoading(false)
       inputRef.current?.focus()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input, loading, profil])
+
+  const sendSuggestion = useCallback((text: string) => {
+    sendMessage(text)
+  }, [sendMessage])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -316,7 +357,11 @@ export default function AssistantPage() {
             Assistant CertiBase
           </h1>
           <p className="text-[12.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            Réponses basées sur les fiches de connaissance indexées
+            Mode{' '}
+            <span style={{ color: activeProfil.color, fontWeight: 600 }}>
+              {activeProfil.label}
+            </span>
+            {' '}· questions sur les offres, objections et cas clients
           </p>
         </div>
 
@@ -344,7 +389,7 @@ export default function AssistantPage() {
             {PROFILS.map(p => (
               <button
                 key={p.value}
-                onClick={() => setProfil(p.value)}
+                onClick={() => handleProfilChange(p.value)}
                 className="px-2.5 py-1 rounded-md text-[12px] font-semibold transition-all"
                 style={{
                   background: profil === p.value ? p.color : 'transparent',
@@ -373,36 +418,31 @@ export default function AssistantPage() {
                 style={{
                   width: 64,
                   height: 64,
-                  background: 'var(--primary-soft)',
-                  color: 'var(--primary)',
+                  background: activeProfil.color + '20',
+                  color: activeProfil.color,
                 }}
               >
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z" />
-                  <path d="M9 12h.01" strokeWidth={2.5} />
-                  <path d="M12 12h.01" strokeWidth={2.5} />
-                  <path d="M15 12h.01" strokeWidth={2.5} />
-                </svg>
+                <IconBot size={30} />
               </div>
 
               <div>
                 <p className="text-[15px] font-semibold mb-1" style={{ color: 'var(--text)' }}>
-                  Comment puis-je vous aider ?
+                  {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
                 </p>
                 <p className="text-[13px] max-w-[380px]" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
                   Profil actif :{' '}
                   <span className="font-semibold" style={{ color: activeProfil.color }}>
                     {activeProfil.label}
                   </span>
-                  {' '}· questions sur les offres, objections, cas clients ou configuration.
+                  {' '}· posez votre question ou choisissez une suggestion.
                 </p>
               </div>
 
               <div className="flex flex-wrap justify-center gap-2 mt-1">
-                {SUGGESTIONS.map(s => (
+                {PROFIL_SUGGESTIONS[profil].map(s => (
                   <button
                     key={s.text}
-                    onClick={() => { setInput(s.text); inputRef.current?.focus() }}
+                    onClick={() => sendSuggestion(s.text)}
                     className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12.5px] cb-shortcut"
                     style={{
                       background: 'var(--surface)',
@@ -466,7 +506,7 @@ export default function AssistantPage() {
               }}
             />
             <button
-              onClick={sendMessage}
+              onClick={() => sendMessage()}
               disabled={!input.trim() || loading}
               className="flex items-center justify-center rounded-lg flex-shrink-0 mb-0.5 transition-all"
               style={{
