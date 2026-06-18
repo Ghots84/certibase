@@ -339,10 +339,14 @@ function FicheDrawer({
   fiche,
   isAdmin,
   onClose,
+  onRefresh,
+  onOpenEdit,
 }: {
   fiche: Fiche
   isAdmin: boolean
   onClose: () => void
+  onRefresh: () => void
+  onOpenEdit: (f: Fiche) => void
 }) {
   const typeMeta = TYPE_META[fiche.type ?? 'doc_certiplace'] ?? TYPE_META.doc_certiplace
   const isPublished = fiche.status === 'published'
@@ -360,6 +364,38 @@ function FicheDrawer({
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
   }, [onClose])
+
+  async function handleValidate() {
+    const res = await fetch(`/api/fiches/${fiche.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'published' }),
+    })
+    if (res.ok) { fireToast('Fiche validée ✓') ; onRefresh() }
+  }
+
+  async function handleArchive() {
+    const res = await fetch(`/api/fiches/${fiche.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'archived' }),
+    })
+    if (res.ok) { fireToast('Fiche archivée') ; onRefresh() ; onClose() }
+  }
+
+  async function handleDuplicate() {
+    const res = await fetch('/api/fiches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: fiche.title + ' (copie)',
+        type: fiche.type ?? 'doc_certiplace',
+        content: fiche.content,
+        profil_cible: fiche.profil_cible ?? 'all',
+      }),
+    })
+    if (res.ok) { fireToast('Fiche dupliquée en brouillon') ; onRefresh() }
+  }
 
   return (
     <div style={{
@@ -525,7 +561,7 @@ function FicheDrawer({
         gap: 8,
       }}>
         <button
-          onClick={() => fireToast('Duplication — disponible en Story 3.3')}
+          onClick={handleDuplicate}
           style={{
             flex: 1, padding: '8px 0',
             borderRadius: 'var(--radius)', border: '1px solid var(--border)',
@@ -535,9 +571,22 @@ function FicheDrawer({
         >
           Dupliquer
         </button>
+        {isAdmin && (
+          <button
+            onClick={handleArchive}
+            style={{
+              flex: 1, padding: '8px 0',
+              borderRadius: 'var(--radius)', border: '1px solid var(--border)',
+              background: 'var(--surface-2)', color: 'var(--danger)',
+              fontSize: 13, fontWeight: 500, cursor: 'pointer',
+            }}
+          >
+            Archiver
+          </button>
+        )}
         {isAdmin && fiche.status === 'draft' && (
           <button
-            onClick={() => fireToast('Validation — disponible en Story 3.3')}
+            onClick={handleValidate}
             style={{
               flex: 1, padding: '8px 0',
               borderRadius: 'var(--radius)', border: 'none',
@@ -550,7 +599,7 @@ function FicheDrawer({
         )}
         {isAdmin && fiche.status === 'published' && (
           <button
-            onClick={() => fireToast('Édition — disponible en Story 3.3')}
+            onClick={() => onOpenEdit(fiche)}
             style={{
               flex: 1, padding: '8px 0',
               borderRadius: 'var(--radius)', border: 'none',
@@ -566,6 +615,146 @@ function FicheDrawer({
   )
 }
 
+// ── FicheFormModal ────────────────────────────────────────────────────────────
+
+function FicheFormModal({
+  mode,
+  fiche,
+  onSave,
+  onClose,
+}: {
+  mode: 'create' | 'edit'
+  fiche?: Fiche
+  onSave: () => void
+  onClose: () => void
+}) {
+  const [title, setTitle] = useState(fiche?.title ?? '')
+  const [type, setType] = useState<string>(fiche?.type ?? 'doc_certiplace')
+  const [content, setContent] = useState(fiche?.content ?? '')
+  const [profil, setProfil] = useState<string>(fiche?.profil_cible ?? 'all')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [onClose])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    const body = { title, type, content, profil_cible: profil }
+    const res = mode === 'create'
+      ? await fetch('/api/fiches', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      : await fetch(`/api/fiches/${fiche!.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    setSaving(false)
+    if (res.ok) {
+      fireToast(mode === 'create' ? 'Fiche créée en brouillon' : 'Fiche modifiée')
+      onSave()
+      onClose()
+    }
+  }
+
+  const fieldLabel: React.CSSProperties = {
+    fontSize: 12, fontWeight: 600, color: 'var(--text-faint)',
+    textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6,
+  }
+  const fieldInput: React.CSSProperties = {
+    width: '100%', padding: '8px 12px', borderRadius: 'var(--radius)',
+    border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)',
+    fontSize: 14, outline: 'none', boxSizing: 'border-box',
+  }
+
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 100,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      <div style={{
+        width: 520, maxWidth: 'calc(100vw - 32px)',
+        background: 'var(--surface)', borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border)', overflow: 'hidden',
+        maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+        boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+      }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          {/* Header */}
+          <div style={{
+            padding: '16px 20px', borderBottom: '1px solid var(--border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
+              {mode === 'create' ? 'Nouvelle fiche' : 'Modifier la fiche'}
+            </h2>
+            <button type="button" onClick={onClose}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', fontSize: 18, lineHeight: 1 }}>
+              ✕
+            </button>
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto', flex: 1 }}>
+            <label>
+              <span style={fieldLabel}>Titre</span>
+              <input type="text" value={title} onChange={e => setTitle(e.target.value)} required style={fieldInput} />
+            </label>
+
+            <label>
+              <span style={fieldLabel}>Type</span>
+              <select value={type} onChange={e => setType(e.target.value)} required style={fieldInput}>
+                {Object.entries(TYPE_META).map(([k, v]) => (
+                  <option key={k} value={k}>{v.label}</option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span style={fieldLabel}>Contenu</span>
+              <textarea value={content} onChange={e => setContent(e.target.value)} required rows={8}
+                style={{ ...fieldInput, resize: 'vertical', fontFamily: 'inherit', fontSize: 13.5, lineHeight: 1.6 }} />
+            </label>
+
+            <label>
+              <span style={fieldLabel}>Profil cible</span>
+              <select value={profil} onChange={e => setProfil(e.target.value)} style={fieldInput}>
+                {Object.entries(PROFIL_LABEL).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {/* Footer */}
+          <div style={{
+            padding: '14px 20px', borderTop: '1px solid var(--border)',
+            display: 'flex', gap: 10, justifyContent: 'flex-end',
+          }}>
+            <button type="button" onClick={onClose}
+              style={{
+                padding: '8px 18px', borderRadius: 'var(--radius)',
+                border: '1px solid var(--border)', background: 'var(--surface-2)',
+                color: 'var(--text-muted)', fontSize: 13, fontWeight: 500, cursor: 'pointer',
+              }}>
+              Annuler
+            </button>
+            <button type="submit" disabled={saving}
+              style={{
+                padding: '8px 18px', borderRadius: 'var(--radius)', border: 'none',
+                background: 'var(--primary)', color: '#fff', fontSize: 13, fontWeight: 600,
+                cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
+              }}>
+              {saving ? 'Enregistrement...' : mode === 'create' ? 'Créer' : 'Enregistrer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function FichesPage() {
@@ -576,6 +765,8 @@ export default function FichesPage() {
   const [category, setCategory] = useState<Category | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [formState, setFormState] = useState<{ open: boolean; mode: 'create' | 'edit'; fiche?: Fiche }>({ open: false, mode: 'create' })
 
   // Single effect — fetch /api/me first to know the role, then load fiches accordingly
   useEffect(() => {
@@ -603,7 +794,7 @@ export default function FichesPage() {
       setLoading(false)
     }
     loadAll()
-  }, [])
+  }, [refreshKey])
 
   const showGrid = category !== null || query.trim() !== ''
 
@@ -673,7 +864,7 @@ export default function FichesPage() {
         </div>
         {isAdmin && (
           <button
-            onClick={() => fireToast('Création de fiche — disponible en Story 3.3')}
+            onClick={() => setFormState({ open: true, mode: 'create' })}
             style={{
               padding: '8px 16px', borderRadius: 'var(--radius-pill)',
               background: 'var(--primary)', color: '#fff', border: 'none',
@@ -777,9 +968,20 @@ export default function FichesPage() {
               fiche={activeFiche}
               isAdmin={isAdmin}
               onClose={() => setActiveId(null)}
+              onRefresh={() => setRefreshKey(k => k + 1)}
+              onOpenEdit={f => setFormState({ open: true, mode: 'edit', fiche: f })}
             />
           )}
         </div>
+      )}
+
+      {formState.open && (
+        <FicheFormModal
+          mode={formState.mode}
+          fiche={formState.fiche}
+          onSave={() => setRefreshKey(k => k + 1)}
+          onClose={() => setFormState(s => ({ ...s, open: false }))}
+        />
       )}
     </div>
   )
