@@ -280,6 +280,25 @@ export default function AssistantPage() {
   }, [])
 
   useEffect(() => {
+    async function loadHistory() {
+      const res = await fetch('/api/chat/messages')
+      if (!res.ok) return
+      const msgs = await res.json() as Array<{
+        id: string; role: 'user' | 'assistant'; content: string
+        sources?: Source[]; created_at: string
+      }>
+      setMessages(msgs.map(m => ({
+        id: m.id,
+        role: m.role,
+        text: m.content,
+        sources: m.sources ?? [],
+        loading: false,
+      })))
+    }
+    loadHistory()
+  }, [])
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
@@ -314,6 +333,8 @@ export default function AssistantPage() {
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
+      let finalText = ''
+      let finalSources: Source[] = []
 
       while (true) {
         const { done, value } = await reader.read()
@@ -329,10 +350,12 @@ export default function AssistantPage() {
           try {
             const event = JSON.parse(line.slice(6))
             if (event.type === 'text') {
+              finalText += event.text as string
               setMessages(prev =>
                 prev.map(m => m.id === botId ? { ...m, text: m.text + event.text, loading: true } : m)
               )
             } else if (event.type === 'sources') {
+              finalSources = event.sources as Source[]
               setMessages(prev =>
                 prev.map(m => m.id === botId ? { ...m, sources: event.sources } : m)
               )
@@ -351,6 +374,18 @@ export default function AssistantPage() {
             // ligne non-JSON ignorée
           }
         }
+      }
+
+      // Sauvegarder l'échange en DB (fire-and-forget)
+      fetch('/api/chat/messages', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'user', content: question }),
+      }).catch(() => {})
+      if (finalText) {
+        fetch('/api/chat/messages', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'assistant', content: finalText, sources: finalSources }),
+        }).catch(() => {})
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erreur réseau'

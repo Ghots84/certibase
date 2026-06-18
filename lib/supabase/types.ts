@@ -95,6 +95,15 @@ export interface Fiche {
   created_at: string
 }
 
+export interface ChatMessage {
+  id: string
+  user_id: string
+  role: 'user' | 'assistant'
+  content: string
+  sources: Record<string, unknown>[]
+  created_at: string
+}
+
 // Résultat de match_documents()
 export interface MatchDocumentResult {
   id: string
