@@ -4,7 +4,7 @@ baseline_commit: 634ce6b
 
 # Story 2.6 : Notifications admin [Should]
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -180,11 +180,11 @@ setOpen(false)
 
 ## Tasks
 
-- [ ] 1. Créer `GET /api/notifications/route.ts` — imports ready/error 48h, filtré par user sauf admin
-- [ ] 2. Modifier `components/topbar.tsx` — ajouter polling 30s, unseenCount, dropdown complet
-- [ ] 3. Modifier `app/(dashboard)/imports/page.tsx` — initialiser `selectedId` depuis `useSearchParams`
-- [ ] 4. Vérifier Suspense boundary pour useSearchParams (layout ou page)
-- [ ] 5. `npm run lint` → 0 erreur
+- [x] 1. Créer `GET /api/notifications/route.ts` — imports ready/error 48h, filtré par user sauf admin
+- [x] 2. Modifier `components/topbar.tsx` — ajouter polling 30s, unseenCount, dropdown complet
+- [x] 3. Modifier `app/(dashboard)/imports/page.tsx` — initialiser `selectedId` depuis `useSearchParams`
+- [x] 4. Vérifier Suspense boundary pour useSearchParams (layout ou page)
+- [x] 5. `npm run lint` → 0 erreur
 
 ## File List
 
@@ -198,4 +198,9 @@ setOpen(false)
 claude-sonnet-4-6
 
 ### Completion Notes
-_à remplir_
+- Story déjà implémentée dans une session précédente ; story file mise à jour pour refléter l'état réel du code
+- `app/api/notifications/route.ts` : GET, auth user, filtre `status IN ('ready','error')` 48h, non-admin filtré par `uploaded_by`
+- `components/topbar.tsx` : polling 30s, unseenCount via localStorage `cb_seen_notifs`, dropdown 300px avec icônes type, badge statut, nav `/imports?selected=<id>`
+- `app/(dashboard)/imports/page.tsx` : `useSearchParams()` + `useState(searchParams.get('selected'))` pour `selectedId`
+- `app/(dashboard)/layout.tsx` : `<Suspense>{children}</Suspense>` déjà en place
+- `npm run lint` → 0 erreur

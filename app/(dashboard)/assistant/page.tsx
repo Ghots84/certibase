@@ -47,6 +47,63 @@ function IconBot({ size = 16 }: { size?: number }) {
   )
 }
 
+function parseDraftBlocks(text: string): Array<{ type: 'text' | 'draft'; content: string }> {
+  const parts: Array<{ type: 'text' | 'draft'; content: string }> = []
+  const regex = /<draft>([\s\S]*?)<\/draft>/g
+  let last = 0
+  let match
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) parts.push({ type: 'text', content: text.slice(last, match.index) })
+    parts.push({ type: 'draft', content: match[1].trim() })
+    last = match.index + match[0].length
+  }
+  if (last < text.length) parts.push({ type: 'text', content: text.slice(last) })
+  return parts.length ? parts : [{ type: 'text', content: text }]
+}
+
+function DraftBlock({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <div style={{
+      background: 'var(--surface-2)',
+      border: '1px solid var(--border)',
+      borderLeft: '3px solid var(--primary)',
+      borderRadius: 'var(--radius)',
+      padding: '12px 14px',
+      margin: '8px 0',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--primary)' }}>
+          ✨ Brouillon de réponse
+        </span>
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(content)
+            window.cbToast?.('Brouillon copié')
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+          }}
+          style={{
+            padding: '3px 10px', borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border)',
+            background: copied ? 'var(--success-soft)' : 'var(--surface)',
+            color: copied ? 'var(--success)' : 'var(--text-faint)',
+            fontSize: 11.5, fontWeight: 500, cursor: 'pointer',
+          }}
+        >
+          {copied ? '✓ Copié' : 'Copier'}
+        </button>
+      </div>
+      <p style={{
+        margin: 0, fontSize: 13.5, color: 'var(--text-muted)',
+        fontStyle: 'italic', lineHeight: 1.65, whiteSpace: 'pre-wrap',
+      }}>
+        {content}
+      </p>
+    </div>
+  )
+}
+
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
   return (
@@ -113,7 +170,6 @@ function UserBubble({ text }: { text: string }) {
 }
 
 function AssistantBubble({ msg }: { msg: Message }) {
-  const isStreaming = msg.loading && msg.text.length > 0
 
   return (
     <div className="cb-fade-in flex justify-start">
@@ -138,6 +194,7 @@ function AssistantBubble({ msg }: { msg: Message }) {
             }}
           >
             {msg.loading && !msg.text ? (
+              /* Dots — en attente du premier token */
               <div className="flex gap-1 items-center py-0.5">
                 {[0, 1, 2].map(i => (
                   <span
@@ -153,11 +210,23 @@ function AssistantBubble({ msg }: { msg: Message }) {
                   />
                 ))}
               </div>
-            ) : (
-              <div className={isStreaming ? 'prose-certibase cb-cursor' : 'prose-certibase'}>
+            ) : msg.loading ? (
+              /* Streaming — afficher le texte brut, masquer les balises <draft> */
+              <div className="prose-certibase cb-cursor">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {msg.text}
+                  {msg.text.replace(/<\/?draft>/g, '')}
                 </ReactMarkdown>
+              </div>
+            ) : (
+              /* Terminé — parser et afficher les blocs draft */
+              <div>
+                {parseDraftBlocks(msg.text).map((part, i) =>
+                  part.type === 'draft'
+                    ? <DraftBlock key={i} content={part.content} />
+                    : <div key={i} className="prose-certibase">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{part.content}</ReactMarkdown>
+                      </div>
+                )}
               </div>
             )}
           </div>
