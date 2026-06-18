@@ -5,7 +5,7 @@ import type { Fiche, FicheType } from '@/lib/supabase/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CATEGORIES = ['Toutes', 'Produit', 'Sales', 'Réglementaire', 'Veille', 'Support'] as const
+const CATEGORIES = ['Toutes', 'Produit', 'Sales', 'Réglementaire', 'Veille', 'Support', 'À valider'] as const
 type Category = typeof CATEGORIES[number]
 
 const TYPE_TO_CATEGORY: Record<string, Category> = {
@@ -53,6 +53,7 @@ const CATEGORY_META: Record<Category, { icon: string; description: string }> = {
   'Réglementaire': { icon: '⚖️', description: 'Guides et situations réglementaires' },
   'Veille':        { icon: '🔭', description: 'Veille marché et secteur' },
   'Support':       { icon: '🛟', description: 'Support et assistance client' },
+  'À valider':     { icon: '✏️', description: 'Brouillons en attente de validation' },
 }
 
 const PROFIL_LABEL: Record<string, string> = {
@@ -283,14 +284,17 @@ function BlindspotPlaceholder() {
 }
 
 function CategoryCard({
-  cat, count, active, onClick,
+  cat, count, active, onClick, adminOnly = false,
 }: {
   cat: Category
   count: number
   active: boolean
   onClick: () => void
+  adminOnly?: boolean
 }) {
   const meta = CATEGORY_META[cat]
+  const accent = adminOnly ? 'var(--warning)' : 'var(--primary)'
+  const accentSoft = adminOnly ? 'var(--warning-soft)' : 'var(--primary-soft)'
   return (
     <div
       role="button"
@@ -298,8 +302,8 @@ function CategoryCard({
       onClick={onClick}
       onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onClick()}
       style={{
-        background: active ? 'var(--primary-soft)' : 'var(--surface)',
-        border: active ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+        background: active ? accentSoft : 'var(--surface)',
+        border: active ? `1.5px solid ${accent}` : adminOnly ? '1.5px dashed var(--warning)' : '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)',
         padding: '18px 14px 14px',
         cursor: 'pointer',
@@ -309,7 +313,7 @@ function CategoryCard({
         textAlign: 'center',
         gap: 5,
         transition: 'all 0.15s ease',
-        boxShadow: active ? '0 0 0 1px var(--primary)' : 'none',
+        boxShadow: active ? `0 0 0 1px ${accent}` : 'none',
       }}
       onMouseEnter={e => {
         if (!active) (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 14px rgba(0,0,0,0.08)'
@@ -319,7 +323,7 @@ function CategoryCard({
       }}
     >
       <span style={{ fontSize: 24, lineHeight: 1, marginBottom: 2 }}>{meta.icon}</span>
-      <p style={{ margin: 0, fontWeight: 700, fontSize: 13.5, color: active ? 'var(--primary)' : 'var(--text)' }}>
+      <p style={{ margin: 0, fontWeight: 700, fontSize: 13.5, color: active ? accent : adminOnly ? 'var(--warning)' : 'var(--text)' }}>
         {cat}
       </p>
       <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-faint)', lineHeight: 1.4, minHeight: 30 }}>
@@ -327,7 +331,7 @@ function CategoryCard({
       </p>
       <span style={{
         marginTop: 6, fontSize: 12, fontWeight: 600,
-        color: active ? 'var(--primary)' : 'var(--text-muted)',
+        color: active ? accent : adminOnly ? 'var(--warning)' : 'var(--text-muted)',
       }}>
         {count} fiche{count !== 1 ? 's' : ''}
       </span>
@@ -799,7 +803,11 @@ export default function FichesPage() {
   const showGrid = category !== null || query.trim() !== ''
 
   const filtered = fiches
-    .filter(f => !category || category === 'Toutes' || TYPE_TO_CATEGORY[(f.type ?? '') as FicheType] === category)
+    .filter(f => {
+      if (!category || category === 'Toutes') return true
+      if (category === 'À valider') return f.status === 'draft'
+      return f.status !== 'draft' && TYPE_TO_CATEGORY[(f.type ?? '') as FicheType] === category
+    })
     .filter(f => !query || (f.title + ' ' + f.content).toLowerCase().includes(query.toLowerCase()))
 
   const activeFiche = fiches.find(f => f.id === activeId) ?? null
@@ -811,7 +819,7 @@ export default function FichesPage() {
     if (!showGrid) {
       return isAdmin && drafts > 0
         ? `${published} publiée${published !== 1 ? 's' : ''} · ${drafts} à valider`
-        : `${fiches.length} fiche${fiches.length !== 1 ? 's' : ''} · ${CATEGORIES.length - 1} catégories`
+        : `${fiches.length} fiche${fiches.length !== 1 ? 's' : ''} · ${isAdmin ? CATEGORIES.length - 1 : CATEGORIES.length - 2} catégories`
     }
     const n = filtered.length
     return `${n} fiche${n !== 1 ? 's' : ''}${drafts > 0 && isAdmin ? ` · ${drafts} à valider` : ''}`
@@ -819,8 +827,10 @@ export default function FichesPage() {
 
   const categoryCounts = useMemo(() => {
     const counts = Object.fromEntries(CATEGORIES.map(c => [c, 0])) as Record<Category, number>
-    counts['Toutes'] = fiches.length
+    counts['Toutes'] = fiches.filter(f => f.status !== 'draft').length
+    counts['À valider'] = fiches.filter(f => f.status === 'draft').length
     for (const f of fiches) {
+      if (f.status === 'draft') continue
       const cat = TYPE_TO_CATEGORY[(f.type ?? '') as FicheType]
       if (cat) counts[cat]++
     }
@@ -909,7 +919,7 @@ export default function FichesPage() {
           gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
           gap: 16,
         }}>
-          {CATEGORIES.map(cat => (
+          {CATEGORIES.filter(cat => cat !== 'À valider').map(cat => (
             <CategoryCard
               key={cat}
               cat={cat}
@@ -918,6 +928,15 @@ export default function FichesPage() {
               onClick={() => setCategory(cat)}
             />
           ))}
+          {isAdmin && (
+            <CategoryCard
+              cat="À valider"
+              count={categoryCounts['À valider']}
+              active={false}
+              onClick={() => setCategory('À valider')}
+              adminOnly
+            />
+          )}
         </div>
       )}
 
