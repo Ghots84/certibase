@@ -4,8 +4,6 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
-type Profil = 'csm' | 'sales' | 'ops' | 'admin'
-
 type Source = {
   id: string
   title: string
@@ -21,13 +19,6 @@ type Message = {
   loading?: boolean
 }
 
-const PROFILS: { value: Profil; label: string; color: string }[] = [
-  { value: 'csm',   label: 'CSM',   color: '#2D7DD2' },
-  { value: 'sales', label: 'Sales', color: '#E8651E' },
-  { value: 'ops',   label: 'Ops',   color: '#1F8A5B' },
-  { value: 'admin', label: 'Admin', color: '#7A5AF8' },
-]
-
 const TYPE_LABELS: Record<string, string> = {
   objection:       'Objection',
   guide_situation: 'Guide',
@@ -37,28 +28,11 @@ const TYPE_LABELS: Record<string, string> = {
   veille:          'Veille',
 }
 
-const PROFIL_SUGGESTIONS: Record<Profil, { icon: string; text: string }[]> = {
-  csm: [
-    { icon: '⚙️', text: "Comment configurer l'espace candidat ?" },
-    { icon: '📋', text: 'Quelles sont les étapes du parcours de certification ?' },
-    { icon: '🔄', text: 'Comment gérer un dossier en attente de validation ?' },
-  ],
-  sales: [
-    { icon: '💰', text: "Comment gérer l'objection sur le prix ?" },
-    { icon: '🏆', text: 'Quelles sont les différences Standard / Premium ?' },
-    { icon: '🤝', text: 'Quels arguments face à un concurrent ?' },
-  ],
-  ops: [
-    { icon: '📊', text: 'Quels sont les indicateurs de suivi à surveiller ?' },
-    { icon: '🔧', text: 'Comment résoudre un problème technique courant ?' },
-    { icon: '📝', text: 'Quelles sont les procédures de validation interne ?' },
-  ],
-  admin: [
-    { icon: '👥', text: 'Comment gérer les accès utilisateurs ?' },
-    { icon: '📈', text: "Quel est l'état de la base de connaissance ?" },
-    { icon: '🔍', text: 'Quelles fiches sont en attente de validation ?' },
-  ],
-}
+const SUGGESTIONS = [
+  { icon: '⚙️', text: "Comment configurer l'espace candidat ?" },
+  { icon: '💰', text: "Comment gérer l'objection sur le prix ?" },
+  { icon: '🏆', text: 'Quelles sont les différences Standard / Premium ?' },
+]
 
 function IconBot({ size = 16 }: { size?: number }) {
   return (
@@ -164,7 +138,6 @@ function AssistantBubble({ msg }: { msg: Message }) {
             }}
           >
             {msg.loading && !msg.text ? (
-              /* Dots — waiting for first token */
               <div className="flex gap-1 items-center py-0.5">
                 {[0, 1, 2].map(i => (
                   <span
@@ -217,7 +190,6 @@ function AssistantBubble({ msg }: { msg: Message }) {
 }
 
 export default function AssistantPage() {
-  const [profil, setProfil] = useState<Profil>('csm')
   const [firstName, setFirstName] = useState<string>('')
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -233,10 +205,6 @@ export default function AssistantPage() {
         const me = await res.json()
         const name = (me.full_name ?? '').split(' ')[0] || me.email?.split('@')[0] || ''
         setFirstName(name)
-        const roleToProfile: Record<string, Profil> = {
-          admin: 'admin', csm: 'csm', sales: 'sales', new: 'csm',
-        }
-        setProfil(roleToProfile[me.role] ?? 'csm')
       }
     }
     loadUser()
@@ -250,11 +218,6 @@ export default function AssistantPage() {
     if (inputRef.current) {
       inputRef.current.style.height = 'auto'
     }
-  }
-
-  function handleProfilChange(p: Profil) {
-    setProfil(p)
-    setMessages([])
   }
 
   const sendMessage = useCallback(async (overrideText?: string) => {
@@ -274,7 +237,7 @@ export default function AssistantPage() {
       const res = await fetch('/api/rag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, profil }),
+        body: JSON.stringify({ question }),
       })
 
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
@@ -329,7 +292,7 @@ export default function AssistantPage() {
       setLoading(false)
       inputRef.current?.focus()
     }
-  }, [input, loading, profil])
+  }, [input, loading])
 
   const sendSuggestion = useCallback((text: string) => {
     sendMessage(text)
@@ -341,8 +304,6 @@ export default function AssistantPage() {
       sendMessage()
     }
   }
-
-  const activeProfil = PROFILS.find(p => p.value === profil)!
 
   return (
     <div className="cb-fade-in flex flex-col" style={{ height: '100%' }}>
@@ -357,53 +318,24 @@ export default function AssistantPage() {
             Assistant CertiBase
           </h1>
           <p className="text-[12.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            Mode{' '}
-            <span style={{ color: activeProfil.color, fontWeight: 600 }}>
-              {activeProfil.label}
-            </span>
-            {' '}· questions sur les offres, objections et cas clients
+            Réponses basées sur les fiches de connaissance indexées
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {messages.length > 0 && (
-            <button
-              onClick={() => { setMessages([]); window.cbToast?.('Conversation réinitialisée') }}
-              className="text-[12px] px-3 py-1.5 rounded-lg transition-all"
-              style={{
-                background: 'transparent',
-                border: '1px solid var(--border)',
-                color: 'var(--text-faint)',
-                cursor: 'pointer',
-              }}
-            >
-              ↺ Réinitialiser
-            </button>
-          )}
-
-          {/* Profile picker */}
-          <div
-            className="flex items-center p-1 rounded-lg"
-            style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', gap: 2 }}
+        {messages.length > 0 && (
+          <button
+            onClick={() => { setMessages([]); window.cbToast?.('Conversation réinitialisée') }}
+            className="text-[12px] px-3 py-1.5 rounded-lg transition-all"
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--border)',
+              color: 'var(--text-faint)',
+              cursor: 'pointer',
+            }}
           >
-            {PROFILS.map(p => (
-              <button
-                key={p.value}
-                onClick={() => handleProfilChange(p.value)}
-                className="px-2.5 py-1 rounded-md text-[12px] font-semibold transition-all"
-                style={{
-                  background: profil === p.value ? p.color : 'transparent',
-                  color: profil === p.value ? '#fff' : 'var(--text-muted)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  letterSpacing: profil === p.value ? '-0.01em' : undefined,
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
+            ↺ Réinitialiser
+          </button>
+        )}
       </div>
 
       {/* ── Messages ── */}
@@ -418,8 +350,8 @@ export default function AssistantPage() {
                 style={{
                   width: 64,
                   height: 64,
-                  background: activeProfil.color + '20',
-                  color: activeProfil.color,
+                  background: 'var(--primary-soft)',
+                  color: 'var(--primary)',
                 }}
               >
                 <IconBot size={30} />
@@ -430,16 +362,12 @@ export default function AssistantPage() {
                   {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
                 </p>
                 <p className="text-[13px] max-w-[380px]" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                  Profil actif :{' '}
-                  <span className="font-semibold" style={{ color: activeProfil.color }}>
-                    {activeProfil.label}
-                  </span>
-                  {' '}· posez votre question ou choisissez une suggestion.
+                  Posez votre question ou choisissez une suggestion ci-dessous.
                 </p>
               </div>
 
               <div className="flex flex-wrap justify-center gap-2 mt-1">
-                {PROFIL_SUGGESTIONS[profil].map(s => (
+                {SUGGESTIONS.map(s => (
                   <button
                     key={s.text}
                     onClick={() => sendSuggestion(s.text)}
@@ -526,9 +454,7 @@ export default function AssistantPage() {
           </div>
 
           <p className="mono text-center text-[11px] mt-2" style={{ color: 'var(--text-faint)' }}>
-            Profil :{' '}
-            <strong style={{ color: activeProfil.color }}>{activeProfil.label}</strong>
-            {' · '}Maj+Entrée pour sauter une ligne
+            Maj+Entrée pour sauter une ligne
           </p>
         </div>
       </div>

@@ -12,7 +12,7 @@ function sseEvent(data: unknown): string {
 }
 
 export async function POST(request: Request) {
-  const { question, profil } = await request.json()
+  const { question } = await request.json()
 
   if (!question?.trim()) {
     return Response.json({ error: 'question required' }, { status: 400 })
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
           query_embedding: `[${queryEmbedding.join(',')}]`,
           match_threshold: 0.35,
           match_count: 5,
-          profile_filter: profil ?? 'all',
+          profile_filter: 'all',
         })
 
         if (error) throw new Error(`match_documents error: ${error.message}`)
@@ -66,10 +66,9 @@ export async function POST(request: Request) {
         }
 
         if (results.length === 0) {
-          const profilLabel = profil === 'all' ? 'tous les profils' : `le profil ${(profil as string).toUpperCase()}`
           send({
             type: 'text',
-            text: `Aucune fiche pertinente trouvée pour ${profilLabel}.\n\nSuggestions :\n- Reformulez avec des termes métier (ex : "CDC", "accrochage", "offre Premium")\n- Changez le filtre de profil (bouton en haut à droite)\n- Si le sujet est récent, la fiche n'est peut-être pas encore indexée`,
+            text: `Aucune fiche pertinente trouvée.\n\nSuggestions :\n- Reformulez avec des termes métier (ex : "CDC", "accrochage", "offre Premium")\n- Si le sujet est récent, la fiche n'est peut-être pas encore indexée`,
           })
           send({ type: 'sources', sources: [] })
           send({ type: 'done' })
