@@ -54,7 +54,7 @@ export interface Import {
 
 export interface ImportFicheDraft {
   id: string
-  import_id: string
+  import_id: string | null
   validated_by: string | null
   fiche_id: string | null
   type: DraftType | null
@@ -64,7 +64,15 @@ export interface ImportFicheDraft {
   source_page: number | null
   confidence: number | null
   status: DraftStatus
+  canal_source?: string | null
   created_at: string
+}
+
+export interface Blindspot {
+  question: string
+  times_asked: number
+  canal: string
+  last_asked: string
 }
 
 export interface Fiche {

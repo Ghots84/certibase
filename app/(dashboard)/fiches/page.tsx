@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import type { Fiche, FicheType } from '@/lib/supabase/types'
+import type { Fiche, FicheType, Blindspot } from '@/lib/supabase/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -266,19 +266,113 @@ function FicheCard({
   )
 }
 
-function BlindspotPlaceholder() {
+function BlindspotItem({ item }: { item: Blindspot }) {
+  const isHigh = item.times_asked >= 8
+  const dotColor = isHigh ? 'var(--danger)' : 'var(--warning)'
+  const haloColor = isHigh ? 'var(--danger-soft)' : 'var(--warning-soft)'
+  const question = item.question.length > 80 ? item.question.slice(0, 77) + '...' : item.question
+
+  async function handleCreate() {
+    const res = await fetch('/api/fiches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: item.question.slice(0, 255),
+        type: 'doc_certiplace',
+        content: `## Question sans réponse\n\n${item.question}\n\n## À compléter`,
+        profil_cible: 'all',
+      }),
+    })
+    if (res.ok) {
+      const label = item.question.length > 60 ? item.question.slice(0, 60) + '…' : item.question
+      fireToast(`Brouillon créé pour : «${label}»`)
+    }
+  }
+
   return (
     <div style={{
-      borderRadius: 'var(--radius)',
-      padding: '14px 18px',
-      background: 'var(--surface)',
+      background: 'var(--bg)',
       border: '1px solid var(--border)',
-      borderLeft: '3px solid var(--primary)',
-      marginTop: 32,
+      borderRadius: 'var(--radius)',
+      padding: '12px 14px',
+      display: 'flex', flexDirection: 'column', gap: 8,
     }}>
-      <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>
-        ✦ Angles morts — disponible en Story 3.4
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+        <span style={{
+          flexShrink: 0, width: 8, height: 8, borderRadius: '50%',
+          background: dotColor,
+          boxShadow: `0 0 0 3px ${haloColor}`,
+          marginTop: 5,
+          display: 'inline-block',
+        }} />
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: 'var(--text)', lineHeight: 1.5 }}>
+          {question}
+        </p>
+      </div>
+      <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-faint)', fontFamily: 'monospace' }}>
+        {item.times_asked}× demandé · {item.canal}
       </p>
+      <button
+        onClick={handleCreate}
+        style={{
+          alignSelf: 'flex-start',
+          padding: '4px 10px', borderRadius: 'var(--radius)',
+          border: '1px solid var(--border)', background: 'var(--surface-2)',
+          color: 'var(--text-muted)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+        }}
+      >
+        Créer une fiche ↑
+      </button>
+    </div>
+  )
+}
+
+function BlindspotPanel({ isAdmin }: { isAdmin: boolean }) {
+  const [items, setItems] = useState<Blindspot[]>([])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    async function load() {
+      const res = await fetch('/api/blindspots')
+      if (res.ok) setItems(await res.json())
+    }
+    load()
+  }, [isAdmin])
+
+  if (!isAdmin || items.length === 0) return null
+
+  return (
+    <div style={{
+      marginTop: 32,
+      borderRadius: 'var(--radius-lg)',
+      border: '1px solid var(--border)',
+      borderLeft: '3px solid var(--warning)',
+      background: 'var(--surface)',
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        padding: '14px 18px',
+        borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <span style={{ color: 'var(--warning)', fontSize: 15 }}>✦</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>Angles morts</span>
+        <span style={{
+          marginLeft: 'auto', fontSize: 11, fontWeight: 600,
+          color: 'var(--warning)', background: 'var(--warning-soft)',
+          borderRadius: 'var(--radius-pill)', padding: '2px 8px',
+        }}>
+          {items.length} question{items.length > 1 ? 's' : ''} sans réponse
+        </span>
+      </div>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+        gap: 12,
+        padding: 16,
+      }}>
+        {items.map(item => <BlindspotItem key={item.question} item={item} />)}
+      </div>
     </div>
   )
 }
@@ -979,7 +1073,7 @@ export default function FichesPage() {
                 ))}
               </div>
             )}
-            {!loading && !error && <BlindspotPlaceholder />}
+            {!loading && !error && <BlindspotPanel isAdmin={isAdmin} />}
           </div>
 
           {activeFiche && (

@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { MatchDocumentResult } from '@/lib/supabase/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -43,6 +44,26 @@ export async function POST(request: Request) {
         if (error) throw new Error(`match_documents error: ${error.message}`)
 
         const results: MatchDocumentResult[] = fiches ?? []
+
+        // Détecter les angles morts : aucune fiche satisfaisante (similarity < 0.75)
+        const maxSimilarity = results.length > 0
+          ? Math.max(...results.map(r => r.similarity))
+          : 0
+        if (maxSimilarity < 0.75) {
+          // Fire-and-forget — ne jamais bloquer le stream SSE
+          createAdminClient()
+            .from('import_fiches_draft')
+            .insert({
+              import_id: null,
+              type: 'missing_info',
+              title: question.slice(0, 500),
+              content: question,
+              confidence: 0,
+              canal_source: 'assistant',
+              status: 'pending',
+            })
+            .then()
+        }
 
         if (results.length === 0) {
           const profilLabel = profil === 'all' ? 'tous les profils' : `le profil ${(profil as string).toUpperCase()}`
