@@ -261,6 +261,7 @@ function AssistantBubble({ msg }: { msg: Message }) {
 export default function AssistantPage() {
   const [firstName, setFirstName] = useState<string>('')
   const [messages, setMessages] = useState<Message[]>([])
+  const [historyLoaded, setHistoryLoaded] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [inputFocused, setInputFocused] = useState(false)
@@ -282,18 +283,20 @@ export default function AssistantPage() {
   useEffect(() => {
     async function loadHistory() {
       const res = await fetch('/api/chat/messages')
-      if (!res.ok) return
-      const msgs = await res.json() as Array<{
-        id: string; role: 'user' | 'assistant'; content: string
-        sources?: Source[]; created_at: string
-      }>
-      setMessages(msgs.map(m => ({
-        id: m.id,
-        role: m.role,
-        text: m.content,
-        sources: m.sources ?? [],
-        loading: false,
-      })))
+      if (res.ok) {
+        const msgs = await res.json() as Array<{
+          id: string; role: 'user' | 'assistant'; content: string
+          sources?: Source[]; created_at: string
+        }>
+        setMessages(msgs.map(m => ({
+          id: m.id,
+          role: m.role,
+          text: m.content,
+          sources: m.sources ?? [],
+          loading: false,
+        })))
+      }
+      setHistoryLoaded(true)
     }
     loadHistory()
   }, [])
@@ -446,8 +449,8 @@ export default function AssistantPage() {
       <div className="flex-1 overflow-y-auto py-6" style={{ background: 'var(--bg)' }}>
         <div className="mx-auto px-6 flex flex-col gap-5" style={{ maxWidth: 720 }}>
 
-          {/* Empty state */}
-          {messages.length === 0 && (
+          {/* Empty state — affiché uniquement quand l'historique est chargé */}
+          {messages.length === 0 && historyLoaded && (
             <div className="flex flex-col items-center gap-4 pt-16 pb-8 text-center">
               <div
                 className="flex items-center justify-center rounded-2xl"

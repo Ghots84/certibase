@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import {
   IconAudio, IconVideo, IconPdf, IconLink, IconUpload, IconChevron,
 } from '@/components/icons'
-import type { Import, ImportFicheDraft } from '@/lib/supabase/types'
+import type { Import, Fiche } from '@/lib/supabase/types'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ const DRAFT_TYPE_LABEL: Record<string, string> = {
   guide_situation: 'Guide situation',
   cas_client:      'Cas client',
   concurrent:      'Concurrent',
-  missing_info:    'Angle mort',
+  doc_certiplace:  'Angle mort',
 }
 
 const IN_PROGRESS = new Set(['pending', 'extracting', 'analyzing'])
@@ -86,14 +86,14 @@ function ValidationCard({
   onApprove,
   onReject,
 }: {
-  draft: ImportFicheDraft
+  draft: Fiche
   state: DraftState
   isAdmin: boolean
   onApprove: () => void
   onReject: () => void
 }) {
-  const conf = draft.confidence ?? 0
-  const isMissing = draft.type === 'missing_info'
+  const conf = draft.confidence_threshold ?? 0
+  const isMissing = draft.type === 'doc_certiplace'
   const lowConfidence = conf < 0.7
 
   const cardStyle: React.CSSProperties = {
@@ -208,15 +208,17 @@ function ValidationCard({
 function ImportPanel({
   imp,
   onRetry,
+  onDelete,
   retrying,
   isAdmin,
 }: {
   imp: Import | null
   onRetry: (id: string) => void
+  onDelete: (id: string) => void
   retrying: Set<string>
   isAdmin: boolean
 }) {
-  const [drafts, setDrafts] = useState<ImportFicheDraft[]>([])
+  const [drafts, setDrafts] = useState<Fiche[]>([])
   const [draftStates, setDraftStates] = useState<Record<string, DraftState>>({})
   const [loadingDrafts, setLoadingDrafts] = useState(false)
 
@@ -232,10 +234,14 @@ function ImportPanel({
       }
       setLoadingDrafts(true)
       const res = await fetch(`/api/imports/${impId}/drafts`)
-      const data: ImportFicheDraft[] = res.ok ? await res.json() : []
+      const data: Fiche[] = res.ok ? await res.json() : []
       setDrafts(data)
       const initial: Record<string, DraftState> = {}
-      data.forEach(d => { initial[d.id] = (d.status as DraftState) ?? 'pending' })
+      data.forEach(d => {
+        initial[d.id] = d.status === 'published' ? 'approved'
+          : d.status === 'archived' ? 'rejected'
+          : 'pending'
+      })
       setDraftStates(initial)
       setLoadingDrafts(false)
     }
@@ -382,8 +388,8 @@ function ImportPanel({
       </div>
 
       {/* Footer */}
-      {imp.status === 'error' && (
-        <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+      <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {imp.status === 'error' && (
           <button
             onClick={() => onRetry(imp.id)}
             disabled={retrying.has(imp.id)}
@@ -396,8 +402,18 @@ function ImportPanel({
           >
             {retrying.has(imp.id) ? 'Relance...' : 'Relancer le pipeline'}
           </button>
-        </div>
-      )}
+        )}
+        <button
+          onClick={() => { if (confirm('Supprimer cet import ?')) onDelete(imp.id) }}
+          style={{
+            width: '100%', padding: '8px 0', borderRadius: 'var(--radius)',
+            border: '1px solid var(--border)', background: 'transparent',
+            color: 'var(--danger)', fontSize: 13, fontWeight: 500, cursor: 'pointer',
+          }}
+        >
+          Supprimer l&apos;import
+        </button>
+      </div>
     </div>
   )
 }
@@ -416,6 +432,8 @@ export default function ImportsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('selected'))
   const [isAdmin, setIsAdmin] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const pollCountRef = useRef(0)
+  const MAX_POLLS = 40 // 2 minutes max à 3s/poll
 
   const currentMode = FILE_MODES.find(m => m.value === mode)!
   const selectedImport = imports.find(i => i.id === selectedId) ?? null
@@ -432,8 +450,12 @@ export default function ImportsPage() {
       if (!res.ok) return
       const data: Import[] = await res.json()
       setImports(data)
-      if (data.some(i => IN_PROGRESS.has(i.status))) {
+      const hasInProgress = data.some(i => IN_PROGRESS.has(i.status))
+      if (hasInProgress && pollCountRef.current < MAX_POLLS) {
+        pollCountRef.current++
         setTimeout(() => setRefreshKey(k => k + 1), 3000)
+      } else if (!hasInProgress) {
+        pollCountRef.current = 0
       }
     }
     load()
@@ -479,6 +501,18 @@ export default function ImportsPage() {
     if (!res.ok) window.cbToast(data.error ?? 'Erreur lors du relancement', 'error')
     else { window.cbToast('Pipeline relancé'); setRefreshKey(k => k + 1) }
     setRetrying(prev => { const s = new Set(prev); s.delete(importId); return s })
+  }
+
+  async function deleteImport(importId: string) {
+    const res = await fetch(`/api/imports/${importId}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const d = await res.json()
+      window.cbToast(d.error ?? 'Erreur suppression', 'error')
+      return
+    }
+    window.cbToast('Import supprimé')
+    if (selectedId === importId) setSelectedId(null)
+    setImports(prev => prev.filter(i => i.id !== importId))
   }
 
   function handleDragOver(e: React.DragEvent) { e.preventDefault(); setDragOver(true) }
@@ -640,7 +674,7 @@ export default function ImportsPage() {
           </div>
 
           {/* Panneau droit */}
-          <ImportPanel imp={selectedImport} onRetry={retryImport} retrying={retrying} isAdmin={isAdmin} />
+          <ImportPanel imp={selectedImport} onRetry={retryImport} onDelete={deleteImport} retrying={retrying} isAdmin={isAdmin} />
         </div>
       )}
     </div>

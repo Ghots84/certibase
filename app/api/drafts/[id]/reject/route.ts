@@ -18,15 +18,13 @@ export async function POST(
     return Response.json({ error: 'forbidden' }, { status: 403 })
   }
 
-  const { data: draft } = await admin
-    .from('import_fiches_draft').select('status').eq('id', id).single()
-  if (!draft) return Response.json({ error: 'Draft introuvable' }, { status: 404 })
-  if (draft.status !== 'pending') return Response.json({ error: 'Draft déjà traité' }, { status: 409 })
+  const { data: fiche } = await admin
+    .from('fiches').select('id, status').eq('id', id).single()
+  if (!fiche) return Response.json({ error: 'Fiche introuvable' }, { status: 404 })
+  if (fiche.status !== 'draft') return Response.json({ error: 'Fiche déjà traitée' }, { status: 409 })
 
-  await admin.from('import_fiches_draft').update({
-    status:       'rejected',
-    validated_by: user.id,
-  }).eq('id', id)
+  const { error } = await admin.from('fiches').delete().eq('id', id)
+  if (error) return Response.json({ error: error.message }, { status: 500 })
 
   return Response.json({ success: true })
 }

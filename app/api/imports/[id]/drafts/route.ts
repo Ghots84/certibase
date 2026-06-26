@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { ImportFicheDraft } from '@/lib/supabase/types'
+import type { Fiche } from '@/lib/supabase/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,17 +22,17 @@ export async function GET(
   }
 
   const { data, error } = await admin
-    .from('import_fiches_draft')
+    .from('fiches')
     .select('*')
-    .eq('import_id', id)
+    .eq('source_ref_id', id)
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
-  // missing_info en tête, puis par confiance décroissante
-  const sorted = (data as ImportFicheDraft[]).sort((a, b) => {
-    if (a.type === 'missing_info' && b.type !== 'missing_info') return -1
-    if (b.type === 'missing_info' && a.type !== 'missing_info') return 1
-    return (b.confidence ?? 0) - (a.confidence ?? 0)
+  const sorted = (data as Fiche[]).sort((a, b) => {
+    // doc_certiplace (anciens angles morts) en tête, puis par confiance décroissante
+    if (a.type === 'doc_certiplace' && b.type !== 'doc_certiplace') return -1
+    if (b.type === 'doc_certiplace' && a.type !== 'doc_certiplace') return 1
+    return (b.confidence_threshold ?? 0) - (a.confidence_threshold ?? 0)
   })
 
   return Response.json(sorted)

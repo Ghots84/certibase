@@ -27,8 +27,9 @@ export default function ToastProvider() {
         delete timers.current[id]
       }, 3000)
     }
+    const activeTimers = timers.current
     return () => {
-      Object.values(timers.current).forEach(clearTimeout)
+      Object.values(activeTimers).forEach(clearTimeout)
     }
   }, [])
 

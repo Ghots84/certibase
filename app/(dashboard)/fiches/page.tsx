@@ -470,6 +470,7 @@ function FicheDrawer({
       body: JSON.stringify({ status: 'published' }),
     })
     if (res.ok) { fireToast('Fiche validée ✓') ; onRefresh() }
+    else { fireToast('Erreur lors de la validation') }
   }
 
   async function handleArchive() {
@@ -479,6 +480,7 @@ function FicheDrawer({
       body: JSON.stringify({ status: 'archived' }),
     })
     if (res.ok) { fireToast('Fiche archivée') ; onRefresh() ; onClose() }
+    else { fireToast('Erreur lors de l\'archivage') }
   }
 
   async function handleDuplicate() {
@@ -493,6 +495,7 @@ function FicheDrawer({
       }),
     })
     if (res.ok) { fireToast('Fiche dupliquée en brouillon') ; onRefresh() }
+    else { fireToast('Erreur lors de la duplication') }
   }
 
   return (
@@ -738,7 +741,7 @@ function FicheFormModal({
     return () => document.removeEventListener('keydown', handleKey)
   }, [onClose])
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setSaving(true)
     const body = { title, type, content, profil_cible: profil }
@@ -750,6 +753,8 @@ function FicheFormModal({
       fireToast(mode === 'create' ? 'Fiche créée en brouillon' : 'Fiche modifiée')
       onSave()
       onClose()
+    } else {
+      fireToast(mode === 'create' ? 'Erreur lors de la création' : 'Erreur lors de la modification')
     }
   }
 
