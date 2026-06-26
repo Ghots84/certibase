@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
+import officeParser from 'officeparser'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -66,12 +67,20 @@ async function extractPdf(filePath: string, originalName: string): Promise<strin
   if (error || !blob) throw new Error(`Téléchargement Storage impossible : ${error?.message}`)
 
   const ext = originalName.split('.').pop()?.toLowerCase() ?? 'pdf'
-  const mediaMime = ext === 'pptx'
-    ? 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-    : 'application/pdf'
+  const buffer = Buffer.from(await blob.arrayBuffer())
 
-  const base64 = Buffer.from(await blob.arrayBuffer()).toString('base64')
+  // PPTX : extraction texte via officeparser (Claude n'accepte pas ce format)
+  if (ext === 'pptx') {
+    return new Promise<string>((resolve, reject) => {
+      officeParser.parseOffice(buffer, (text: string, err: Error | null) => {
+        if (err) reject(new Error(`Extraction PPTX impossible : ${err.message}`))
+        else resolve(text)
+      }, { outputErrorToConsole: false })
+    })
+  }
 
+  // PDF : envoi à Claude via document API
+  const base64 = buffer.toString('base64')
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 4096,
@@ -80,7 +89,7 @@ async function extractPdf(filePath: string, originalName: string): Promise<strin
       content: [
         {
           type: 'document',
-          source: { type: 'base64', media_type: mediaMime as 'application/pdf', data: base64 },
+          source: { type: 'base64', media_type: 'application/pdf', data: base64 },
         },
         {
           type: 'text',
