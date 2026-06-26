@@ -14,7 +14,7 @@ type FileMode = 'audio' | 'video' | 'pdf' | 'url'
 const FILE_MODES: { value: FileMode; label: string; accept?: string; icon: React.ReactNode }[] = [
   { value: 'audio', label: 'Audio', accept: '.mp3,.m4a,.wav', icon: <IconAudio size={15} /> },
   { value: 'video', label: 'Vidéo', accept: '.mp4,.mov',       icon: <IconVideo size={15} /> },
-  { value: 'pdf',   label: 'PDF',   accept: '.pdf,.pptx',      icon: <IconPdf size={15} /> },
+  { value: 'pdf',   label: 'PDF',   accept: '.pdf',             icon: <IconPdf size={15} /> },
   { value: 'url',   label: 'URL',                              icon: <IconLink size={15} /> },
 ]
 

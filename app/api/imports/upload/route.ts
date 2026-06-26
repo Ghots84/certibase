@@ -4,13 +4,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { runImportPipeline } from '@/lib/import-pipeline'
 
 const ALLOWED: Record<string, 'audio' | 'video' | 'pdf'> = {
-  mp3:  'audio',
-  m4a:  'audio',
-  wav:  'audio',
-  mp4:  'video',
-  mov:  'video',
-  pdf:  'pdf',
-  pptx: 'pdf',
+  mp3: 'audio',
+  m4a: 'audio',
+  wav: 'audio',
+  mp4: 'video',
+  mov: 'video',
+  pdf: 'pdf',
 }
 
 const VALID_IMPORT_TYPES = new Set([
@@ -40,7 +39,7 @@ export async function POST(request: Request) {
   const fileType = ALLOWED[ext]
   if (!fileType) {
     return Response.json({
-      error: `Format non supporté : .${ext}. Formats acceptés : mp3, m4a, wav, mp4, mov, pdf, pptx`,
+      error: `Format non supporté : .${ext}. Formats acceptés : mp3, m4a, wav, mp4, mov, pdf. Pour un PowerPoint (.pptx), exportez-le en PDF d'abord.`,
     }, { status: 400 })
   }
 
