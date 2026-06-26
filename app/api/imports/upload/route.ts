@@ -1,5 +1,7 @@
+import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { runImportPipeline } from '@/lib/import-pipeline'
 
 const ALLOWED: Record<string, 'audio' | 'video' | 'pdf'> = {
   mp3:  'audio',
@@ -47,7 +49,11 @@ export async function POST(request: Request) {
     ? rawImportType
     : 'other'
 
-  const storagePath = `${user.id}/${Date.now()}_${file.name}`
+  const safeName = file.name
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // supprimer accents
+    .replace(/[^a-zA-Z0-9._-]/g, '_')                // remplacer espaces/special chars
+    .replace(/_+/g, '_')                              // éviter les doubles underscores
+  const storagePath = `${user.id}/${Date.now()}_${safeName}`
   const bytes = await file.arrayBuffer()
 
   const { error: storageError } = await admin.storage
@@ -79,12 +85,8 @@ export async function POST(request: Request) {
     return Response.json({ error: dbError.message }, { status: 500 })
   }
 
-  // Trigger pipeline asynchronously — ne pas bloquer la réponse upload
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-  fetch(`${baseUrl}/api/imports/${record.id}/process`, {
-    method: 'POST',
-    headers: { 'x-internal-pipeline': process.env.PIPELINE_SECRET ?? '' },
-  }).catch(() => {})
+  const importId = record.id
+  after(() => runImportPipeline(importId).catch(console.error))
 
   return Response.json(record)
 }
