@@ -31,14 +31,20 @@ export async function POST(request: Request) {
     return Response.json({ error: 'forbidden' }, { status: 403 })
   }
 
-  await s3.send(new CompleteMultipartUploadCommand({
-    Bucket: S3_BUCKET,
-    Key: path,
-    UploadId: uploadId,
-    MultipartUpload: {
-      Parts: parts.map(p => ({ PartNumber: p.partNumber, ETag: p.etag })),
-    },
-  }))
+  try {
+    await s3.send(new CompleteMultipartUploadCommand({
+      Bucket: S3_BUCKET,
+      Key: path,
+      UploadId: uploadId,
+      MultipartUpload: {
+        Parts: parts.map(p => ({ PartNumber: p.partNumber, ETag: p.etag })),
+      },
+    }))
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Erreur S3'
+    console.error('[multipart/complete] S3 error:', msg)
+    return Response.json({ error: `Erreur S3 : ${msg}` }, { status: 500 })
+  }
 
   after(() => runImportPipeline(importId).catch(console.error))
 

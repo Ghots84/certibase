@@ -19,14 +19,22 @@ export async function POST(request: Request) {
   const body = await request.arrayBuffer()
   if (!body.byteLength) return Response.json({ error: 'Chunk vide' }, { status: 400 })
 
-  const { ETag } = await s3.send(new UploadPartCommand({
-    Bucket: S3_BUCKET,
-    Key: path,
-    UploadId: uploadId,
-    PartNumber: partNumber,
-    Body: new Uint8Array(body),
-    ContentLength: body.byteLength,
-  }))
+  let ETag: string | undefined
+  try {
+    const res = await s3.send(new UploadPartCommand({
+      Bucket: S3_BUCKET,
+      Key: path,
+      UploadId: uploadId,
+      PartNumber: partNumber,
+      Body: new Uint8Array(body),
+      ContentLength: body.byteLength,
+    }))
+    ETag = res.ETag
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Erreur S3'
+    console.error(`[multipart/part] S3 error part ${partNumber}:`, msg)
+    return Response.json({ error: `Erreur S3 part ${partNumber} : ${msg}` }, { status: 500 })
+  }
 
   return Response.json({ etag: ETag })
 }

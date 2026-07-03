@@ -44,13 +44,21 @@ export async function POST(request: Request) {
     pdf: 'application/pdf', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   }
 
-  const { UploadId } = await s3.send(new CreateMultipartUploadCommand({
-    Bucket: S3_BUCKET,
-    Key: storagePath,
-    ContentType: mimeMap[ext] ?? 'application/octet-stream',
-  }))
+  let UploadId: string | undefined
+  try {
+    const res = await s3.send(new CreateMultipartUploadCommand({
+      Bucket: S3_BUCKET,
+      Key: storagePath,
+      ContentType: mimeMap[ext] ?? 'application/octet-stream',
+    }))
+    UploadId = res.UploadId
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Erreur S3'
+    console.error('[multipart/init] S3 error:', msg)
+    return Response.json({ error: `Erreur S3 : ${msg}` }, { status: 500 })
+  }
 
-  if (!UploadId) return Response.json({ error: 'Impossible d\'initier le multipart upload' }, { status: 500 })
+  if (!UploadId) return Response.json({ error: 'UploadId manquant dans la réponse S3' }, { status: 500 })
 
   const admin = createAdminClient()
   const { data: record, error: dbError } = await admin
