@@ -6,6 +6,7 @@ import {
   IconAudio, IconVideo, IconPdf, IconLink, IconUpload, IconChevron,
 } from '@/components/icons'
 import type { Import, Fiche } from '@/lib/supabase/types'
+import { createClient as createBrowserSupabase } from '@/lib/supabase/client'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -463,17 +464,40 @@ export default function ImportsPage() {
 
   async function uploadFile(file: File) {
     setLoading(true); setError(null)
-    const fd = new FormData()
-    fd.append('file', file); fd.append('import_type', 'other')
-    const res = await fetch('/api/imports/upload', { method: 'POST', body: fd })
-    const data = await res.json()
-    if (!res.ok) {
-      setError(data.error ?? "Erreur lors de l'upload")
-      window.cbToast(data.error ?? "Erreur lors de l'upload", 'error')
-    } else {
-      window.cbToast('Fichier ajouté à la file de traitement')
-      setRefreshKey(k => k + 1)
+
+    // Étape 1 : créer l'enregistrement + obtenir l'URL signée Supabase
+    const presignRes = await fetch('/api/imports/presign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, import_type: 'other' }),
+    })
+    const presignData = await presignRes.json()
+    if (!presignRes.ok) {
+      setError(presignData.error ?? "Erreur lors de la préparation de l'upload")
+      window.cbToast(presignData.error ?? 'Erreur', 'error')
+      setLoading(false)
+      return
     }
+
+    // Étape 2 : upload direct client → Supabase Storage (contourne le proxy Traefik)
+    const { signedUrl, token, path, record } = presignData
+    const supabase = createBrowserSupabase()
+    const { error: uploadError } = await supabase.storage
+      .from('certibase-imports')
+      .uploadToSignedUrl(path, token, file, { contentType: file.type })
+
+    if (uploadError) {
+      setError(uploadError.message)
+      window.cbToast(uploadError.message, 'error')
+      setLoading(false)
+      return
+    }
+
+    // Étape 3 : déclencher le pipeline côté serveur
+    await fetch(`/api/imports/${record.id}/start`, { method: 'POST' })
+
+    window.cbToast('Fichier ajouté à la file de traitement')
+    setRefreshKey(k => k + 1)
     setLoading(false)
   }
 
