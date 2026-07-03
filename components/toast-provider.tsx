@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { uuid } from '@/lib/uuid'
 
 type Toast = {
   id: string
@@ -20,7 +21,7 @@ export default function ToastProvider() {
 
   useEffect(() => {
     window.cbToast = (message, type = 'success') => {
-      const id = crypto.randomUUID()
+      const id = uuid()
       setToasts(prev => [...prev, { id, message, type }])
       timers.current[id] = setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== id))

@@ -27,8 +27,13 @@ export async function POST(request: Request) {
   let formData: FormData
   try {
     formData = await request.formData()
-  } catch {
-    return Response.json({ error: 'Payload invalide' }, { status: 400 })
+  } catch (e) {
+    // Cause fréquente en prod : le reverse proxy tronque un corps trop volumineux
+    // (mp3/mp4 lourds) → multipart malformé → formData() lève ici.
+    console.error('[imports/upload] formData parse failed:', e)
+    return Response.json({
+      error: 'Corps de requête invalide (fichier trop volumineux ou upload interrompu ?)',
+    }, { status: 400 })
   }
 
   const file = formData.get('file') as File | null

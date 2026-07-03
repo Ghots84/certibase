@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { uuid } from '@/lib/uuid'
 
 type Source = {
   id: string
@@ -315,8 +316,8 @@ export default function AssistantPage() {
     const question = (overrideText ?? input).trim()
     if (!question || loading) return
 
-    const userMsg: Message = { id: crypto.randomUUID(), role: 'user', text: question }
-    const botId = crypto.randomUUID()
+    const userMsg: Message = { id: uuid(), role: 'user', text: question }
+    const botId = uuid()
     const botMsg: Message = { id: botId, role: 'assistant', text: '', loading: true }
 
     setMessages(prev => [...prev, userMsg, botMsg])
