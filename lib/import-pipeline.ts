@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
-import officeParser from 'officeparser'
+import officeParser, { generate as officeGenerate } from 'officeparser'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -33,6 +33,19 @@ async function fetchYouTubeCaptions(videoId: string): Promise<string> {
 
 // ── Extraction dispatch ──────────────────────────────────────────────────────
 
+// Whisper accepte max 25 MB par appel — on découpe les fichiers plus lourds
+const WHISPER_CHUNK_BYTES = 20 * 1024 * 1024 // 20 MB par chunk (marge de sécurité)
+
+async function transcribeBuffer(buffer: ArrayBuffer, name: string, mime: string): Promise<string> {
+  const transcription = await openai.audio.transcriptions.create({
+    file: new File([buffer], name, { type: mime }),
+    model: 'whisper-1',
+    language: 'fr',
+    response_format: 'text',
+  })
+  return transcription as unknown as string
+}
+
 async function extractAudioVideo(filePath: string, originalName: string): Promise<string> {
   const admin = createAdminClient()
   const { data: blob, error } = await admin.storage
@@ -47,15 +60,27 @@ async function extractAudioVideo(filePath: string, originalName: string): Promis
     mp4: 'video/mp4', mov: 'video/quicktime',
   }
   const mime = mimeMap[ext] ?? 'audio/mpeg'
+  const buffer = await blob.arrayBuffer()
 
-  const transcription = await openai.audio.transcriptions.create({
-    file: new File([blob], originalName, { type: mime }),
-    model: 'whisper-1',
-    language: 'fr',
-    response_format: 'text',
-  })
+  if (buffer.byteLength <= WHISPER_CHUNK_BYTES) {
+    return transcribeBuffer(buffer, originalName, mime)
+  }
 
-  return transcription as unknown as string
+  // Fichier volumineux : découpage en chunks de 20 Mo et transcription séquentielle
+  const baseName = originalName.replace(/\.[^.]+$/, '')
+  const parts: string[] = []
+  let offset = 0
+  let index = 1
+
+  while (offset < buffer.byteLength) {
+    const chunk = buffer.slice(offset, offset + WHISPER_CHUNK_BYTES)
+    const chunkName = `${baseName}_part${index}.${ext}`
+    parts.push(await transcribeBuffer(chunk, chunkName, mime))
+    offset += WHISPER_CHUNK_BYTES
+    index++
+  }
+
+  return parts.join(' ')
 }
 
 async function extractPdf(filePath: string, originalName: string): Promise<string> {
@@ -71,12 +96,9 @@ async function extractPdf(filePath: string, originalName: string): Promise<strin
 
   // PPTX : extraction texte via officeparser (Claude n'accepte pas ce format)
   if (ext === 'pptx') {
-    return new Promise<string>((resolve, reject) => {
-      officeParser.parseOffice(buffer, (text: string, err: Error | null) => {
-        if (err) reject(new Error(`Extraction PPTX impossible : ${err.message}`))
-        else resolve(text)
-      }, { outputErrorToConsole: false })
-    })
+    const ast = await officeParser.parseOffice(buffer, { outputErrorToConsole: false })
+    const result = await officeGenerate(ast, 'text')
+    return result.value as string
   }
 
   // PDF : envoi à Claude via document API
