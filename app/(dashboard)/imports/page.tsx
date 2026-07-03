@@ -434,7 +434,7 @@ export default function ImportsPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pollCountRef = useRef(0)
-  const MAX_POLLS = 40 // 2 minutes max à 3s/poll
+  const MAX_POLLS = 200 // 10 minutes max à 3s/poll
 
   const currentMode = FILE_MODES.find(m => m.value === mode)!
   const selectedImport = imports.find(i => i.id === selectedId) ?? null
@@ -463,6 +463,7 @@ export default function ImportsPage() {
   }, [refreshKey])
 
   async function uploadFile(file: File) {
+    pollCountRef.current = 0
     setLoading(true); setError(null)
 
     const CHUNK_SIZE = 40 * 1024 * 1024 // 40 MB — sous la limite Supabase de 50 MB
@@ -481,7 +482,7 @@ export default function ImportsPage() {
         setLoading(false); return
       }
 
-      const { signedUrl, token, path, record } = presignData
+      const { token, path, record } = presignData
       const supabase = createBrowserSupabase()
       const { error: uploadError } = await supabase.storage
         .from('certibase-imports')
@@ -551,6 +552,7 @@ export default function ImportsPage() {
 
   async function addUrl() {
     if (!urlInput.trim()) return
+    pollCountRef.current = 0
     setLoading(true); setError(null)
     const res = await fetch('/api/imports/url', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -567,6 +569,7 @@ export default function ImportsPage() {
   }
 
   async function retryImport(importId: string) {
+    pollCountRef.current = 0
     setRetrying(prev => new Set(prev).add(importId))
     const res = await fetch(`/api/imports/${importId}/process`, { method: 'POST' })
     const data = await res.json()
