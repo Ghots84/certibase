@@ -465,36 +465,84 @@ export default function ImportsPage() {
   async function uploadFile(file: File) {
     setLoading(true); setError(null)
 
-    // Étape 1 : créer l'enregistrement + obtenir l'URL signée Supabase
-    const presignRes = await fetch('/api/imports/presign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: file.name, import_type: 'other' }),
-    })
-    const presignData = await presignRes.json()
-    if (!presignRes.ok) {
-      setError(presignData.error ?? "Erreur lors de la préparation de l'upload")
-      window.cbToast(presignData.error ?? 'Erreur', 'error')
-      setLoading(false)
-      return
+    const CHUNK_SIZE = 40 * 1024 * 1024 // 40 MB — sous la limite Supabase de 50 MB
+
+    if (file.size <= CHUNK_SIZE) {
+      // ── Petit fichier : upload direct via URL signée ──────────────────────
+      const presignRes = await fetch('/api/imports/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, import_type: 'other' }),
+      })
+      const presignData = await presignRes.json()
+      if (!presignRes.ok) {
+        setError(presignData.error ?? "Erreur lors de la préparation de l'upload")
+        window.cbToast(presignData.error ?? 'Erreur', 'error')
+        setLoading(false); return
+      }
+
+      const { signedUrl, token, path, record } = presignData
+      const supabase = createBrowserSupabase()
+      const { error: uploadError } = await supabase.storage
+        .from('certibase-imports')
+        .uploadToSignedUrl(path, token, file, { contentType: file.type })
+
+      if (uploadError) {
+        setError(uploadError.message)
+        window.cbToast(uploadError.message, 'error')
+        setLoading(false); return
+      }
+
+      await fetch(`/api/imports/${record.id}/start`, { method: 'POST' })
+
+    } else {
+      // ── Gros fichier : S3 multipart upload (contourne la limite 50 MB) ───
+      const initRes = await fetch('/api/imports/multipart/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, import_type: 'other' }),
+      })
+      const initData = await initRes.json()
+      if (!initRes.ok) {
+        setError(initData.error ?? 'Erreur initialisation upload')
+        window.cbToast(initData.error ?? 'Erreur', 'error')
+        setLoading(false); return
+      }
+
+      const { importId, uploadId, path } = initData
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
+      const parts: { partNumber: number; etag: string }[] = []
+
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE
+        const chunk = file.slice(start, start + CHUNK_SIZE)
+        const partNumber = i + 1
+
+        const partRes = await fetch(
+          `/api/imports/multipart/part?uploadId=${encodeURIComponent(uploadId)}&path=${encodeURIComponent(path)}&partNumber=${partNumber}`,
+          { method: 'POST', body: chunk },
+        )
+        const partData = await partRes.json()
+        if (!partRes.ok) {
+          setError(partData.error ?? `Erreur chunk ${partNumber}`)
+          window.cbToast(partData.error ?? 'Erreur upload', 'error')
+          setLoading(false); return
+        }
+        parts.push({ partNumber, etag: partData.etag })
+      }
+
+      const completeRes = await fetch('/api/imports/multipart/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ importId, uploadId, path, parts }),
+      })
+      if (!completeRes.ok) {
+        const d = await completeRes.json()
+        setError(d.error ?? 'Erreur finalisation upload')
+        window.cbToast(d.error ?? 'Erreur', 'error')
+        setLoading(false); return
+      }
     }
-
-    // Étape 2 : upload direct client → Supabase Storage (contourne le proxy Traefik)
-    const { signedUrl, token, path, record } = presignData
-    const supabase = createBrowserSupabase()
-    const { error: uploadError } = await supabase.storage
-      .from('certibase-imports')
-      .uploadToSignedUrl(path, token, file, { contentType: file.type })
-
-    if (uploadError) {
-      setError(uploadError.message)
-      window.cbToast(uploadError.message, 'error')
-      setLoading(false)
-      return
-    }
-
-    // Étape 3 : déclencher le pipeline côté serveur
-    await fetch(`/api/imports/${record.id}/start`, { method: 'POST' })
 
     window.cbToast('Fichier ajouté à la file de traitement')
     setRefreshKey(k => k + 1)
