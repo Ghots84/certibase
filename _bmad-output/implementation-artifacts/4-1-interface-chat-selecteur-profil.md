@@ -1,68 +1,68 @@
----
+﻿---
 baseline_commit: 64999ba
 ---
 
-# Story 4.1 : Interface chat & sélecteur de profil
+# Story 4.1 : Interface chat & sÃ©lecteur de profil
 
-Status: review
+Status: done
 
 ## Story
 
-En tant que membre de l'équipe,
-Je veux accéder à une interface de chat adaptée à mon rôle avec des suggestions contextuelles,
-Afin de commencer à interroger la base immédiatement.
+En tant que membre de l'Ã©quipe,
+Je veux accÃ©der Ã  une interface de chat adaptÃ©e Ã  mon rÃ´le avec des suggestions contextuelles,
+Afin de commencer Ã  interroger la base immÃ©diatement.
 
 ## Acceptance Criteria
 
-1. Header affiche H1 "Assistant CertiBase" + sous-titre coloré avec la couleur du profil actif (ex : "Mode CSM" en #2D7DD2)
-2. ProfilePicker : 4 boutons uniquement — CSM #2D7DD2 / Sales #E8651E / Ops #1F8A5B / Admin #7A5AF8 (le profil "all/Tous" est supprimé)
-3. Empty state : icône bot sur fond coloré avec la couleur du profil, "Bonjour \<prénom\> 👋", 3 suggestions chips propres au profil actif
-4. Changer de profil → réinitialise la conversation + met à jour suggestions + met à jour couleurs (icon, header sous-titre)
-5. Cliquer une suggestion → envoie le message automatiquement (pas seulement pre-fill)
-6. Le prénom est récupéré depuis `/api/me` (`full_name`, première partie avant l'espace)
+1. Header affiche H1 "Assistant CertiBase" + sous-titre colorÃ© avec la couleur du profil actif (ex : "Mode CSM" en #2D7DD2)
+2. ProfilePicker : 4 boutons uniquement â€” CSM #2D7DD2 / Sales #E8651E / Ops #1F8A5B / Admin #7A5AF8 (le profil "all/Tous" est supprimÃ©)
+3. Empty state : icÃ´ne bot sur fond colorÃ© avec la couleur du profil, "Bonjour \<prÃ©nom\> ðŸ‘‹", 3 suggestions chips propres au profil actif
+4. Changer de profil â†’ rÃ©initialise la conversation + met Ã  jour suggestions + met Ã  jour couleurs (icon, header sous-titre)
+5. Cliquer une suggestion â†’ envoie le message automatiquement (pas seulement pre-fill)
+6. Le prÃ©nom est rÃ©cupÃ©rÃ© depuis `/api/me` (`full_name`, premiÃ¨re partie avant l'espace)
 
 ## Dev Notes
 
-### Architecture — fichier unique à modifier
+### Architecture â€” fichier unique Ã  modifier
 
-**Seul fichier modifié :** `app/(dashboard)/assistant/page.tsx`
+**Seul fichier modifiÃ© :** `app/(dashboard)/assistant/page.tsx`
 
-La page chat est déjà complète et fonctionnelle (SSE streaming, bubbles, sources, copy). Cette story est **purement frontend** — aucune nouvelle route API, aucune migration.
+La page chat est dÃ©jÃ  complÃ¨te et fonctionnelle (SSE streaming, bubbles, sources, copy). Cette story est **purement frontend** â€” aucune nouvelle route API, aucune migration.
 
 ---
 
 ### Analyse du fichier existant
 
-**État actuel de `app/(dashboard)/assistant/page.tsx` :**
+**Ã‰tat actuel de `app/(dashboard)/assistant/page.tsx` :**
 
 ```ts
 const PROFILS = [
   { value: 'csm',   label: 'CSM',   color: '#2D7DD2' },
   { value: 'sales', label: 'Sales', color: '#E8651E' },
-  { value: 'ops',   label: 'Ops',   color: '#7A5AF8' },  // ← MAUVAISE couleur
-  { value: 'admin', label: 'Admin', color: '#1F8A5B' },  // ← MAUVAISE couleur
-  { value: 'all',   label: 'Tous',  color: '#5B6675' },  // ← À SUPPRIMER
+  { value: 'ops',   label: 'Ops',   color: '#7A5AF8' },  // â† MAUVAISE couleur
+  { value: 'admin', label: 'Admin', color: '#1F8A5B' },  // â† MAUVAISE couleur
+  { value: 'all',   label: 'Tous',  color: '#5B6675' },  // â† Ã€ SUPPRIMER
 ]
 ```
 
 Couleurs correctes selon l'epic :
-- CSM → #2D7DD2 ✅
-- Sales → #E8651E ✅
-- Ops → **#1F8A5B** ❌ (actuellement #7A5AF8)
-- Admin → **#7A5AF8** ❌ (actuellement #1F8A5B)
-- "all/Tous" → **à supprimer** (l'epic ne le mentionne pas)
+- CSM â†’ #2D7DD2 âœ…
+- Sales â†’ #E8651E âœ…
+- Ops â†’ **#1F8A5B** âŒ (actuellement #7A5AF8)
+- Admin â†’ **#7A5AF8** âŒ (actuellement #1F8A5B)
+- "all/Tous" â†’ **Ã  supprimer** (l'epic ne le mentionne pas)
 
-**Suggestions actuelles** : hardcodées, non per-profil, click = pre-fill seulement.
+**Suggestions actuelles** : hardcodÃ©es, non per-profil, click = pre-fill seulement.
 
-**Empty state actuel** : icône chat bubble, fond `var(--primary-soft)`, texte fixe "Comment puis-je vous aider ?", pas de salutation personnalisée.
+**Empty state actuel** : icÃ´ne chat bubble, fond `var(--primary-soft)`, texte fixe "Comment puis-je vous aider ?", pas de salutation personnalisÃ©e.
 
-**Header sous-titre** : fixe "Réponses basées sur les fiches de connaissance indexées" — pas coloré per-profil.
+**Header sous-titre** : fixe "RÃ©ponses basÃ©es sur les fiches de connaissance indexÃ©es" â€” pas colorÃ© per-profil.
 
 **Changement de profil** : pas de reset de conversation.
 
 ---
 
-### Modifications à apporter
+### Modifications Ã  apporter
 
 #### 1. Corriger PROFILS (supprimer "all", corriger les couleurs)
 
@@ -77,7 +77,7 @@ const PROFILS: { value: Profil; label: string; color: string }[] = [
 type Profil = 'csm' | 'sales' | 'ops' | 'admin'
 ```
 
-**Profil par défaut** : détecter depuis `/api/me` (rôle de l'utilisateur). Si le rôle est 'new' ou non mappé → défaut 'csm'. Si admin → défaut 'admin'.
+**Profil par dÃ©faut** : dÃ©tecter depuis `/api/me` (rÃ´le de l'utilisateur). Si le rÃ´le est 'new' ou non mappÃ© â†’ dÃ©faut 'csm'. Si admin â†’ dÃ©faut 'admin'.
 
 #### 2. Suggestions per-profil
 
@@ -86,45 +86,45 @@ Remplacer la constante `SUGGESTIONS` par un Record par profil :
 ```ts
 const PROFIL_SUGGESTIONS: Record<Profil, { icon: string; text: string }[]> = {
   csm: [
-    { icon: '⚙️', text: "Comment configurer l'espace candidat ?" },
-    { icon: '📋', text: 'Quelles sont les étapes du parcours de certification ?' },
-    { icon: '🔄', text: 'Comment gérer un dossier en attente de validation ?' },
+    { icon: 'âš™ï¸', text: "Comment configurer l'espace candidat ?" },
+    { icon: 'ðŸ“‹', text: 'Quelles sont les Ã©tapes du parcours de certification ?' },
+    { icon: 'ðŸ”„', text: 'Comment gÃ©rer un dossier en attente de validation ?' },
   ],
   sales: [
-    { icon: '💰', text: "Comment gérer l'objection sur le prix ?" },
-    { icon: '🏆', text: 'Quelles sont les différences Standard / Premium ?' },
-    { icon: '🤝', text: 'Quels arguments face à un concurrent ?' },
+    { icon: 'ðŸ’°', text: "Comment gÃ©rer l'objection sur le prix ?" },
+    { icon: 'ðŸ†', text: 'Quelles sont les diffÃ©rences Standard / Premium ?' },
+    { icon: 'ðŸ¤', text: 'Quels arguments face Ã  un concurrent ?' },
   ],
   ops: [
-    { icon: '📊', text: 'Quels sont les indicateurs de suivi à surveiller ?' },
-    { icon: '🔧', text: 'Comment résoudre un problème technique courant ?' },
-    { icon: '📝', text: 'Quelles sont les procédures de validation interne ?' },
+    { icon: 'ðŸ“Š', text: 'Quels sont les indicateurs de suivi Ã  surveiller ?' },
+    { icon: 'ðŸ”§', text: 'Comment rÃ©soudre un problÃ¨me technique courant ?' },
+    { icon: 'ðŸ“', text: 'Quelles sont les procÃ©dures de validation interne ?' },
   ],
   admin: [
-    { icon: '👥', text: 'Comment gérer les accès utilisateurs ?' },
-    { icon: '📈', text: "Quel est l'état de la base de connaissance ?" },
-    { icon: '🔍', text: 'Quelles fiches sont en attente de validation ?' },
+    { icon: 'ðŸ‘¥', text: 'Comment gÃ©rer les accÃ¨s utilisateurs ?' },
+    { icon: 'ðŸ“ˆ', text: "Quel est l'Ã©tat de la base de connaissance ?" },
+    { icon: 'ðŸ”', text: 'Quelles fiches sont en attente de validation ?' },
   ],
 }
 ```
 
-#### 3. Récupérer le prénom depuis `/api/me`
+#### 3. RÃ©cupÃ©rer le prÃ©nom depuis `/api/me`
 
 Ajouter un state `firstName` et un useEffect de chargement au montage :
 
 ```ts
 const [firstName, setFirstName] = useState<string>('')
-const [profil, setProfil] = useState<Profil>('csm') // défaut avant chargement
+const [profil, setProfil] = useState<Profil>('csm') // dÃ©faut avant chargement
 
 useEffect(() => {
   async function loadUser() {
     const res = await fetch('/api/me')
     if (res.ok) {
       const me = await res.json()
-      // Extraire le prénom : première partie de full_name
+      // Extraire le prÃ©nom : premiÃ¨re partie de full_name
       const name = (me.full_name ?? '').split(' ')[0] || me.email?.split('@')[0] || ''
       setFirstName(name)
-      // Mapper le rôle au profil par défaut
+      // Mapper le rÃ´le au profil par dÃ©faut
       const roleToProfile: Record<string, Profil> = {
         admin: 'admin', csm: 'csm', sales: 'sales', new: 'csm',
       }
@@ -135,11 +135,11 @@ useEffect(() => {
 }, [])
 ```
 
-**Important** : `react-hooks/set-state-in-effect` → tout setState dans la fonction `loadUser()` interne. ✅ Ce pattern est déjà correct ci-dessus.
+**Important** : `react-hooks/set-state-in-effect` â†’ tout setState dans la fonction `loadUser()` interne. âœ… Ce pattern est dÃ©jÃ  correct ci-dessus.
 
-#### 4. Header sous-titre coloré
+#### 4. Header sous-titre colorÃ©
 
-Remplacer le sous-titre fixe par le profil actif coloré :
+Remplacer le sous-titre fixe par le profil actif colorÃ© :
 
 ```tsx
 <p className="text-[12.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
@@ -147,7 +147,7 @@ Remplacer le sous-titre fixe par le profil actif coloré :
   <span style={{ color: activeProfil.color, fontWeight: 600 }}>
     {activeProfil.label}
   </span>
-  {' '}· questions sur les offres, objections et cas clients
+  {' '}Â· questions sur les offres, objections et cas clients
 </p>
 ```
 
@@ -164,33 +164,33 @@ function handleProfilChange(p: Profil) {
 
 Remplacer `onClick={() => setProfil(p.value)}` par `onClick={() => handleProfilChange(p.value)}`.
 
-#### 6. Empty state avec icône bot colorée + "Bonjour prénom 👋"
+#### 6. Empty state avec icÃ´ne bot colorÃ©e + "Bonjour prÃ©nom ðŸ‘‹"
 
 ```tsx
 {messages.length === 0 && (
   <div className="flex flex-col items-center gap-4 pt-16 pb-8 text-center">
-    {/* Icône bot sur fond couleur du profil */}
+    {/* IcÃ´ne bot sur fond couleur du profil */}
     <div
       className="flex items-center justify-center rounded-2xl"
       style={{
         width: 64, height: 64,
-        background: activeProfil.color + '20', // 12% opacité
+        background: activeProfil.color + '20', // 12% opacitÃ©
         color: activeProfil.color,
       }}
     >
-      <IconBot size={30} />  {/* voir ci-dessous — ajouter prop size */}
+      <IconBot size={30} />  {/* voir ci-dessous â€” ajouter prop size */}
     </div>
 
     <div>
       <p className="text-[15px] font-semibold mb-1" style={{ color: 'var(--text)' }}>
-        {firstName ? `Bonjour ${firstName} 👋` : 'Bonjour 👋'}
+        {firstName ? `Bonjour ${firstName} ðŸ‘‹` : 'Bonjour ðŸ‘‹'}
       </p>
       <p className="text-[13px] max-w-[380px]" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
         Profil actif :{' '}
         <span className="font-semibold" style={{ color: activeProfil.color }}>
           {activeProfil.label}
         </span>
-        {' '}· posez votre question ou choisissez une suggestion.
+        {' '}Â· posez votre question ou choisissez une suggestion.
       </p>
     </div>
 
@@ -219,17 +219,17 @@ Remplacer `onClick={() => setProfil(p.value)}` par `onClick={() => handleProfilC
 
 #### 7. Auto-send des suggestions
 
-Ajouter `sendSuggestion` qui pré-remplit et envoie immédiatement :
+Ajouter `sendSuggestion` qui prÃ©-remplit et envoie immÃ©diatement :
 
 ```ts
 const sendSuggestion = useCallback((text: string) => {
   setInput(text)
-  // Déclencher sendMessage avec le texte directement
-  // (sendMessage lit `input` via closure — utiliser version avec paramètre)
+  // DÃ©clencher sendMessage avec le texte directement
+  // (sendMessage lit `input` via closure â€” utiliser version avec paramÃ¨tre)
 }, [])
 ```
 
-**Problème** : `sendMessage` lit `input` depuis la closure. Pour éviter le doublon de logique, refactoriser `sendMessage` pour accepter un `text` optionnel :
+**ProblÃ¨me** : `sendMessage` lit `input` depuis la closure. Pour Ã©viter le doublon de logique, refactoriser `sendMessage` pour accepter un `text` optionnel :
 
 ```ts
 const sendMessage = useCallback(async (overrideText?: string) => {
@@ -256,50 +256,50 @@ function IconBot({ size = 16 }: { size?: number }) {
 
 ---
 
-### Couleur avec opacité hex
+### Couleur avec opacitÃ© hex
 
-Pour `background: activeProfil.color + '20'` (12% opacité) :
+Pour `background: activeProfil.color + '20'` (12% opacitÃ©) :
 - `#2D7DD220` = CSM bleu
 - `#E8651E20` = Sales orange
 - `#1F8A5B20` = Ops vert
 - `#7A5AF820` = Admin violet
 
-Ce pattern est plus simple que `rgba()` et fonctionne avec les hex colors fixes. ✅
+Ce pattern est plus simple que `rgba()` et fonctionne avec les hex colors fixes. âœ…
 
 ---
 
-### Règles à respecter (carryover)
+### RÃ¨gles Ã  respecter (carryover)
 
-- `var(--token)` CSS uniquement pour les variables design system — mais les couleurs profil (#hex) sont des constantes figées, ok en inline
-- `react-hooks/set-state-in-effect` : setState dans `async function loadUser()` interne au useEffect ✅
-- Ne jamais supprimer les autres fonctionnalités existantes (bubbles, sources, copy, streaming SSE)
-- Le `PROFILS` avec 'all' est actuellement utilisé comme valeur par défaut de `profil` state et dans le body de la requête `/api/rag`. La suppression de 'all' implique : changer le type `Profil`, changer la valeur par défaut du state (→ 'csm'), et le handler `/api/rag` gère déjà `profil ?? 'all'` en fallback côté serveur
-- Ne pas casser `sendMessage` pour les utilisateurs qui tapent manuellement (le paramètre `overrideText` est optionnel)
+- `var(--token)` CSS uniquement pour les variables design system â€” mais les couleurs profil (#hex) sont des constantes figÃ©es, ok en inline
+- `react-hooks/set-state-in-effect` : setState dans `async function loadUser()` interne au useEffect âœ…
+- Ne jamais supprimer les autres fonctionnalitÃ©s existantes (bubbles, sources, copy, streaming SSE)
+- Le `PROFILS` avec 'all' est actuellement utilisÃ© comme valeur par dÃ©faut de `profil` state et dans le body de la requÃªte `/api/rag`. La suppression de 'all' implique : changer le type `Profil`, changer la valeur par dÃ©faut du state (â†’ 'csm'), et le handler `/api/rag` gÃ¨re dÃ©jÃ  `profil ?? 'all'` en fallback cÃ´tÃ© serveur
+- Ne pas casser `sendMessage` pour les utilisateurs qui tapent manuellement (le paramÃ¨tre `overrideText` est optionnel)
 
 ---
 
-### Ce qui NE change pas (à préserver)
+### Ce qui NE change pas (Ã  prÃ©server)
 
-- Tout le système SSE streaming (reader, buffer, events text/sources/done/error) — NE PAS TOUCHER
-- `UserBubble`, `AssistantBubble`, `SourceChip`, `CopyButton` — NE PAS TOUCHER
-- L'input textarea auto-resize — NE PAS TOUCHER  
-- Le bouton "↺ Réinitialiser" existant — NE PAS TOUCHER (bonus: il reset déjà messages)
-- La prop `profil` passée à `/api/rag` — NE PAS TOUCHER
-- Les styles `.prose-certibase` — NE PAS TOUCHER
+- Tout le systÃ¨me SSE streaming (reader, buffer, events text/sources/done/error) â€” NE PAS TOUCHER
+- `UserBubble`, `AssistantBubble`, `SourceChip`, `CopyButton` â€” NE PAS TOUCHER
+- L'input textarea auto-resize â€” NE PAS TOUCHER  
+- Le bouton "â†º RÃ©initialiser" existant â€” NE PAS TOUCHER (bonus: il reset dÃ©jÃ  messages)
+- La prop `profil` passÃ©e Ã  `/api/rag` â€” NE PAS TOUCHER
+- Les styles `.prose-certibase` â€” NE PAS TOUCHER
 
 ---
 
 ## Tasks
 
-- [x] 1. Corriger `PROFILS` : couleurs Ops/Admin (swap), supprimer 'all' ; mettre à jour le type `Profil`
-- [x] 2. Ajouter state `firstName` + useEffect pour charger `/api/me` + set profil par défaut selon le rôle
+- [x] 1. Corriger `PROFILS` : couleurs Ops/Admin (swap), supprimer 'all' ; mettre Ã  jour le type `Profil`
+- [x] 2. Ajouter state `firstName` + useEffect pour charger `/api/me` + set profil par dÃ©faut selon le rÃ´le
 - [x] 3. Remplacer `SUGGESTIONS` par `PROFIL_SUGGESTIONS` (Record par profil, 3 suggestions chacun)
-- [x] 4. Mettre à jour le header : sous-titre coloré avec couleur du profil actif
+- [x] 4. Mettre Ã  jour le header : sous-titre colorÃ© avec couleur du profil actif
 - [x] 5. Ajouter `handleProfilChange` : reset messages + setProfil
 - [x] 6. Refactoriser `sendMessage(overrideText?)` + ajouter `sendSuggestion` (auto-send)
-- [x] 7. Mettre à jour l'empty state : icône bot colorée, "Bonjour prénom 👋", suggestions per-profil avec auto-send
-- [x] 8. Ajouter prop `size` à `IconBot`
-- [x] 9. `npm run lint` → 0 erreur
+- [x] 7. Mettre Ã  jour l'empty state : icÃ´ne bot colorÃ©e, "Bonjour prÃ©nom ðŸ‘‹", suggestions per-profil avec auto-send
+- [x] 8. Ajouter prop `size` Ã  `IconBot`
+- [x] 9. `npm run lint` â†’ 0 erreur
 
 ## File List
 
@@ -308,14 +308,15 @@ Ce pattern est plus simple que `rgba()` et fonctionne avec les hex colors fixes.
 ## Dev Agent Record
 
 ### Completion Notes
-- `PROFILS` : suppression de 'all', swap couleurs Ops (#1F8A5B) ↔ Admin (#7A5AF8) ; type `Profil` sans 'all'
+- `PROFILS` : suppression de 'all', swap couleurs Ops (#1F8A5B) â†” Admin (#7A5AF8) ; type `Profil` sans 'all'
 - `PROFIL_SUGGESTIONS` : Record<Profil, ...> avec 3 suggestions par profil (csm/sales/ops/admin)
-- `IconBot` : prop `size?: number` (défaut 16), utilisée à 30px dans l'empty state
-- `loadUser` useEffect : charge `/api/me`, extrait prénom (split ' ')[0], mappe role → profil par défaut
-- Header sous-titre : "Mode <Profil coloré> · questions…" avec `activeProfil.color`
-- `handleProfilChange` : `setProfil(p); setMessages([])` → reset conversation au changement de profil
+- `IconBot` : prop `size?: number` (dÃ©faut 16), utilisÃ©e Ã  30px dans l'empty state
+- `loadUser` useEffect : charge `/api/me`, extrait prÃ©nom (split ' ')[0], mappe role â†’ profil par dÃ©faut
+- Header sous-titre : "Mode <Profil colorÃ©> Â· questionsâ€¦" avec `activeProfil.color`
+- `handleProfilChange` : `setProfil(p); setMessages([])` â†’ reset conversation au changement de profil
 - `sendMessage(overrideText?)` : utilise `(overrideText ?? input).trim()` pour supporter l'auto-send
-- `sendSuggestion(text)` : useCallback → appelle `sendMessage(text)` directement
-- Empty state : fond `activeProfil.color + '20'` (12% opacité), salutation prénom, chips per-profil avec auto-send
+- `sendSuggestion(text)` : useCallback â†’ appelle `sendMessage(text)` directement
+- Empty state : fond `activeProfil.color + '20'` (12% opacitÃ©), salutation prÃ©nom, chips per-profil avec auto-send
 - ProfilePicker : `onClick={() => handleProfilChange(p.value)}` (reset conversation)
-- `npm run lint` → 0 erreur (1 warning pre-existing dans toast-provider.tsx)
+- `npm run lint` â†’ 0 erreur (1 warning pre-existing dans toast-provider.tsx)
+

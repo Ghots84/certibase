@@ -1,50 +1,50 @@
----
+﻿---
 baseline_commit: bb4f806
 ---
 
-# Story 3.4 : Boucle auto-amélioration — Angles morts
+# Story 3.4 : Boucle auto-amÃ©lioration â€” Angles morts
 
-Status: review
+Status: done
 
 ## Story
 
 En tant qu'Alex (Admin),
-Je veux voir les questions sans réponse satisfaisante et créer facilement les fiches manquantes,
-Afin que la base de connaissance s'améliore continuellement avec l'usage.
+Je veux voir les questions sans rÃ©ponse satisfaisante et crÃ©er facilement les fiches manquantes,
+Afin que la base de connaissance s'amÃ©liore continuellement avec l'usage.
 
 ## Acceptance Criteria
 
-1. Quand l'assistant reçoit une question et que le meilleur résultat RAG a `similarity < 0.75`, un enregistrement `type=missing_info, confidence=0` est créé (ou incrémenté) dans `import_fiches_draft`, de façon silencieuse (non bloquant pour la réponse)
-2. En bas de la grille fiches (vue GRID, admin uniquement), le `BlindspotPanel` s'affiche avec bordure gauche 3px `var(--warning)`, header avec icône ✦ et compteur d'items
-3. Chaque item du panel affiche : pastille sévérité (rouge+halo si `asked≥8`, orange+halo sinon), question (truncée si > 80 chars), stats mono "N× demandé · canal"
-4. Cliquer "Créer une fiche ↑" sur un item → `POST /api/fiches` avec le titre = question, toast "Brouillon créé pour : «question»"
-5. Le panel est masqué si aucun angle mort (liste vide)
+1. Quand l'assistant reÃ§oit une question et que le meilleur rÃ©sultat RAG a `similarity < 0.75`, un enregistrement `type=missing_info, confidence=0` est crÃ©Ã© (ou incrÃ©mentÃ©) dans `import_fiches_draft`, de faÃ§on silencieuse (non bloquant pour la rÃ©ponse)
+2. En bas de la grille fiches (vue GRID, admin uniquement), le `BlindspotPanel` s'affiche avec bordure gauche 3px `var(--warning)`, header avec icÃ´ne âœ¦ et compteur d'items
+3. Chaque item du panel affiche : pastille sÃ©vÃ©ritÃ© (rouge+halo si `askedâ‰¥8`, orange+halo sinon), question (truncÃ©e si > 80 chars), stats mono "NÃ— demandÃ© Â· canal"
+4. Cliquer "CrÃ©er une fiche â†‘" sur un item â†’ `POST /api/fiches` avec le titre = question, toast "Brouillon crÃ©Ã© pour : Â«questionÂ»"
+5. Le panel est masquÃ© si aucun angle mort (liste vide)
 
 ## Dev Notes
 
-### Architecture — Vue d'ensemble des fichiers
+### Architecture â€” Vue d'ensemble des fichiers
 
 | Fichier | Action | Notes |
 |---|---|---|
 | `supabase/migrations/010_blindspot_columns.sql` | NEW | `import_id` nullable + colonne `canal_source` |
-| `lib/supabase/types.ts` | MODIFY | `ImportFicheDraft.import_id` → `string \| null` + `canal_source?` ; nouveau type `Blindspot` |
-| `app/api/rag/route.ts` | MODIFY | Créer draft missing_info si maxSimilarity < 0.75 |
-| `app/api/blindspots/route.ts` | NEW | GET admin — retourne les angles morts groupés |
-| `app/(dashboard)/fiches/page.tsx` | MODIFY | Remplacer `BlindspotPlaceholder` par `BlindspotPanel` réel |
+| `lib/supabase/types.ts` | MODIFY | `ImportFicheDraft.import_id` â†’ `string \| null` + `canal_source?` ; nouveau type `Blindspot` |
+| `app/api/rag/route.ts` | MODIFY | CrÃ©er draft missing_info si maxSimilarity < 0.75 |
+| `app/api/blindspots/route.ts` | NEW | GET admin â€” retourne les angles morts groupÃ©s |
+| `app/(dashboard)/fiches/page.tsx` | MODIFY | Remplacer `BlindspotPlaceholder` par `BlindspotPanel` rÃ©el |
 
 ---
 
-### Task 1 — Migration SQL
+### Task 1 â€” Migration SQL
 
-**Problème critique** : `import_fiches_draft.import_id` est `NOT NULL` (migration 004), ce qui empêche d'y insérer des `missing_info` générés par l'assistant (pas d'import parent). Il faut rendre ce champ nullable **uniquement** quand `type = 'missing_info'`.
+**ProblÃ¨me critique** : `import_fiches_draft.import_id` est `NOT NULL` (migration 004), ce qui empÃªche d'y insÃ©rer des `missing_info` gÃ©nÃ©rÃ©s par l'assistant (pas d'import parent). Il faut rendre ce champ nullable **uniquement** quand `type = 'missing_info'`.
 
-La solution la plus simple : supprimer la contrainte NOT NULL sur `import_id` globalement. Les enregistrements issus d'imports réels auront toujours une valeur ; seuls les `missing_info` auront NULL.
+La solution la plus simple : supprimer la contrainte NOT NULL sur `import_id` globalement. Les enregistrements issus d'imports rÃ©els auront toujours une valeur ; seuls les `missing_info` auront NULL.
 
 Ajouter aussi `canal_source TEXT DEFAULT 'assistant'` pour tracer l'origine (assistant / n8n / agent).
 
 ```sql
 -- Migration 010: rendre import_id nullable + ajouter canal_source
--- Nécessaire pour les enregistrements missing_info créés par l'assistant (sans import parent)
+-- NÃ©cessaire pour les enregistrements missing_info crÃ©Ã©s par l'assistant (sans import parent)
 
 ALTER TABLE public.import_fiches_draft
   ALTER COLUMN import_id DROP NOT NULL;
@@ -53,33 +53,33 @@ ALTER TABLE public.import_fiches_draft
   ADD COLUMN IF NOT EXISTS canal_source TEXT DEFAULT 'assistant';
 ```
 
-**Ne pas oublier** : mettre à jour `ImportFicheDraft` dans `lib/supabase/types.ts` :
-- `import_id: string | null`  (était `string`)
+**Ne pas oublier** : mettre Ã  jour `ImportFicheDraft` dans `lib/supabase/types.ts` :
+- `import_id: string | null`  (Ã©tait `string`)
 - ajouter `canal_source?: string | null`
 
-Ajouter aussi le type agrégé `Blindspot` (retourné par `/api/blindspots`) :
+Ajouter aussi le type agrÃ©gÃ© `Blindspot` (retournÃ© par `/api/blindspots`) :
 ```ts
 export interface Blindspot {
   question: string       // = title du draft
-  times_asked: number    // nb d'occurrences groupées
+  times_asked: number    // nb d'occurrences groupÃ©es
   canal: string          // 'assistant' | 'n8n' | ...
-  last_asked: string     // ISO timestamp dernière occurrence
+  last_asked: string     // ISO timestamp derniÃ¨re occurrence
 }
 ```
 
 ---
 
-### Task 2 — Modifier `/api/rag/route.ts`
+### Task 2 â€” Modifier `/api/rag/route.ts`
 
-**Contexte** : la route utilise `match_threshold: 0.35` pour trouver tous les résultats possibles (basse précision intentionnelle). Mais si le meilleur résultat a `similarity < 0.75`, la réponse n'est pas satisfaisante.
+**Contexte** : la route utilise `match_threshold: 0.35` pour trouver tous les rÃ©sultats possibles (basse prÃ©cision intentionnelle). Mais si le meilleur rÃ©sultat a `similarity < 0.75`, la rÃ©ponse n'est pas satisfaisante.
 
-**Modification** : après avoir obtenu `results`, calculer `maxSimilarity`. Si < 0.75, créer un draft `missing_info` de façon **fire-and-forget** (ne pas `await` — ne jamais bloquer le stream SSE).
+**Modification** : aprÃ¨s avoir obtenu `results`, calculer `maxSimilarity`. Si < 0.75, crÃ©er un draft `missing_info` de faÃ§on **fire-and-forget** (ne pas `await` â€” ne jamais bloquer le stream SSE).
 
 ```ts
 // Ajouter en haut du fichier :
 import { createAdminClient } from '@/lib/supabase/admin'
 
-// Après : const results: MatchDocumentResult[] = fiches ?? []
+// AprÃ¨s : const results: MatchDocumentResult[] = fiches ?? []
 const maxSimilarity = results.length > 0
   ? Math.max(...results.map(r => r.similarity))
   : 0
@@ -102,16 +102,16 @@ if (maxSimilarity < 0.75) {
 ```
 
 **Important** :
-- Ne PAS `await` cet insert — le stream SSE ne doit pas être retardé
+- Ne PAS `await` cet insert â€” le stream SSE ne doit pas Ãªtre retardÃ©
 - Appeler `createAdminClient()` (bypass RLS) car l'utilisateur n'a pas de policy INSERT sur `import_fiches_draft`
-- `question.slice(0, 500)` : sécurité si question très longue
-- Cela crée un nouveau record à chaque question à faible similarity — le groupement se fait côté API `/api/blindspots`
+- `question.slice(0, 500)` : sÃ©curitÃ© si question trÃ¨s longue
+- Cela crÃ©e un nouveau record Ã  chaque question Ã  faible similarity â€” le groupement se fait cÃ´tÃ© API `/api/blindspots`
 
 ---
 
-### Task 3 — Créer `/api/blindspots/route.ts`
+### Task 3 â€” CrÃ©er `/api/blindspots/route.ts`
 
-Route GET admin-only. Récupère tous les `missing_info` en `status='pending'`, les **groupe par titre** en TypeScript (Supabase JS ne supporte pas GROUP BY), et retourne le résultat trié.
+Route GET admin-only. RÃ©cupÃ¨re tous les `missing_info` en `status='pending'`, les **groupe par titre** en TypeScript (Supabase JS ne supporte pas GROUP BY), et retourne le rÃ©sultat triÃ©.
 
 ```ts
 import { createClient } from '@/lib/supabase/server'
@@ -138,7 +138,7 @@ export async function GET() {
     .eq('type', 'missing_info')
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
-    .limit(500) // cap pour éviter les grosses requêtes
+    .limit(500) // cap pour Ã©viter les grosses requÃªtes
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
@@ -170,16 +170,16 @@ export async function GET() {
 
 ---
 
-### Task 4 — Modifier `app/(dashboard)/fiches/page.tsx`
+### Task 4 â€” Modifier `app/(dashboard)/fiches/page.tsx`
 
 #### 4a. Remplacer `BlindspotPlaceholder` par `BlindspotPanel`
 
-La fonction `BlindspotPlaceholder` (lignes ~268-283) est le seul placeholder à remplacer. Son callsite est à la ligne ~963 : `{!loading && !error && <BlindspotPlaceholder />}`.
+La fonction `BlindspotPlaceholder` (lignes ~268-283) est le seul placeholder Ã  remplacer. Son callsite est Ã  la ligne ~963 : `{!loading && !error && <BlindspotPlaceholder />}`.
 
 Le nouveau `BlindspotPanel` est un composant autonome qui :
 1. Charge `/api/blindspots` dans un `useEffect` via une `async function load()` interne
 2. N'affiche rien si la liste est vide ou si `!isAdmin`
-3. Affiche le panel avec les items si > 0 résultats
+3. Affiche le panel avec les items si > 0 rÃ©sultats
 
 **Props** : `{ isAdmin: boolean }`
 
@@ -217,7 +217,7 @@ function BlindspotPanel({ isAdmin }: { isAdmin: boolean }) {
         borderBottom: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <span style={{ color: 'var(--warning)', fontSize: 15 }}>✦</span>
+        <span style={{ color: 'var(--warning)', fontSize: 15 }}>âœ¦</span>
         <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
           Angles morts
         </span>
@@ -226,7 +226,7 @@ function BlindspotPanel({ isAdmin }: { isAdmin: boolean }) {
           color: 'var(--warning)', background: 'var(--warning-soft)',
           borderRadius: 'var(--radius-pill)', padding: '2px 8px',
         }}>
-          {items.length} question{items.length > 1 ? 's' : ''} sans réponse
+          {items.length} question{items.length > 1 ? 's' : ''} sans rÃ©ponse
         </span>
       </div>
 
@@ -264,12 +264,12 @@ function BlindspotItem({ item }: { item: Blindspot }) {
       body: JSON.stringify({
         title: item.question.slice(0, 255),
         type: 'doc_certiplace',
-        content: `## Question sans réponse\n\n${item.question}\n\n## À compléter`,
+        content: `## Question sans rÃ©ponse\n\n${item.question}\n\n## Ã€ complÃ©ter`,
         profil_cible: 'all',
       }),
     })
     if (res.ok) {
-      fireToast(`Brouillon créé pour : «${item.question.slice(0, 60)}${item.question.length > 60 ? '…' : ''}»`)
+      fireToast(`Brouillon crÃ©Ã© pour : Â«${item.question.slice(0, 60)}${item.question.length > 60 ? 'â€¦' : ''}Â»`)
     }
   }
 
@@ -281,7 +281,7 @@ function BlindspotItem({ item }: { item: Blindspot }) {
       padding: '12px 14px',
       display: 'flex', flexDirection: 'column', gap: 8,
     }}>
-      {/* Pastille sévérité + question */}
+      {/* Pastille sÃ©vÃ©ritÃ© + question */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         <span style={{
           flexShrink: 0, width: 8, height: 8, borderRadius: '50%',
@@ -297,7 +297,7 @@ function BlindspotItem({ item }: { item: Blindspot }) {
 
       {/* Stats */}
       <p style={{ margin: 0, fontSize: 11.5, color: 'var(--text-faint)', fontFamily: 'monospace' }}>
-        {item.times_asked}× demandé · {item.canal}
+        {item.times_asked}Ã— demandÃ© Â· {item.canal}
       </p>
 
       {/* CTA */}
@@ -310,7 +310,7 @@ function BlindspotItem({ item }: { item: Blindspot }) {
           color: 'var(--text-muted)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
         }}
       >
-        Créer une fiche ↑
+        CrÃ©er une fiche â†‘
       </button>
     </div>
   )
@@ -319,40 +319,40 @@ function BlindspotItem({ item }: { item: Blindspot }) {
 
 #### 4d. Import type `Blindspot`
 
-Ajouter à la ligne d'import de `types.ts` en haut de la page :
+Ajouter Ã  la ligne d'import de `types.ts` en haut de la page :
 ```ts
 import type { Fiche, FicheType, Blindspot } from '@/lib/supabase/types'
 ```
 
 ---
 
-### Règles à respecter (carryover story 3.3)
+### RÃ¨gles Ã  respecter (carryover story 3.3)
 
-- `var(--token)` CSS uniquement — jamais Tailwind inline colors
+- `var(--token)` CSS uniquement â€” jamais Tailwind inline colors
 - `react-hooks/set-state-in-effect` : tout setState dans une `async function load() {}` puis `load()`
 - `export const dynamic = 'force-dynamic'` sur toutes les routes GET
 - Next.js 16 : `params: Promise<{ id: string }>`, `await params`
 - `createAdminClient()` pour bypass RLS dans les routes admin
 
-### Ordre de dépendances
+### Ordre de dÃ©pendances
 
-1. Migration SQL en premier (sinon l'insert dans rag/route.ts échouera si la colonne n'existe pas)
-2. Types TS en second (utilisés par route blindspots)
+1. Migration SQL en premier (sinon l'insert dans rag/route.ts Ã©chouera si la colonne n'existe pas)
+2. Types TS en second (utilisÃ©s par route blindspots)
 3. Routes API
 4. UI page.tsx en dernier
 
-**Attention lint** : `BlindspotItem` utilise `fireToast` qui est défini dans la même page — pas besoin de re-déclarer. `Blindspot` doit être importé de `@/lib/supabase/types`.
+**Attention lint** : `BlindspotItem` utilise `fireToast` qui est dÃ©fini dans la mÃªme page â€” pas besoin de re-dÃ©clarer. `Blindspot` doit Ãªtre importÃ© de `@/lib/supabase/types`.
 
 ---
 
 ## Tasks
 
-- [x] 1. Créer `supabase/migrations/010_blindspot_columns.sql` — `import_id` nullable + `canal_source`
-- [x] 2. Mettre à jour `lib/supabase/types.ts` — `ImportFicheDraft.import_id: string | null`, `canal_source?`, type `Blindspot`
-- [x] 3. Modifier `app/api/rag/route.ts` — créer draft missing_info (fire-and-forget) si `maxSimilarity < 0.75`
-- [x] 4. Créer `app/api/blindspots/route.ts` — GET admin-only, blindspots groupés
-- [x] 5. Modifier `app/(dashboard)/fiches/page.tsx` — remplacer `BlindspotPlaceholder` par `BlindspotPanel` + `BlindspotItem`
-- [x] 6. `npm run lint` → 0 erreur
+- [x] 1. CrÃ©er `supabase/migrations/010_blindspot_columns.sql` â€” `import_id` nullable + `canal_source`
+- [x] 2. Mettre Ã  jour `lib/supabase/types.ts` â€” `ImportFicheDraft.import_id: string | null`, `canal_source?`, type `Blindspot`
+- [x] 3. Modifier `app/api/rag/route.ts` â€” crÃ©er draft missing_info (fire-and-forget) si `maxSimilarity < 0.75`
+- [x] 4. CrÃ©er `app/api/blindspots/route.ts` â€” GET admin-only, blindspots groupÃ©s
+- [x] 5. Modifier `app/(dashboard)/fiches/page.tsx` â€” remplacer `BlindspotPlaceholder` par `BlindspotPanel` + `BlindspotItem`
+- [x] 6. `npm run lint` â†’ 0 erreur
 
 ## File List
 
@@ -366,8 +366,9 @@ import type { Fiche, FicheType, Blindspot } from '@/lib/supabase/types'
 
 ### Completion Notes
 - Migration 010 : `import_id` nullable + colonne `canal_source TEXT DEFAULT 'assistant'`
-- `ImportFicheDraft.import_id` → `string | null` ; nouveau type `Blindspot` dans types.ts
-- RAG route : `maxSimilarity < 0.75` → insert fire-and-forget `missing_info` via adminClient
+- `ImportFicheDraft.import_id` â†’ `string | null` ; nouveau type `Blindspot` dans types.ts
+- RAG route : `maxSimilarity < 0.75` â†’ insert fire-and-forget `missing_info` via adminClient
 - `/api/blindspots` : GET admin-only, GROUP BY title en TypeScript, tri par `times_asked` DESC, max 20 items
-- `BlindspotPanel` + `BlindspotItem` remplacent `BlindspotPlaceholder` ; panel masqué si liste vide
-- CTA "Créer une fiche ↑" → `POST /api/fiches` (draft direct, visible immédiatement dans "À valider")
+- `BlindspotPanel` + `BlindspotItem` remplacent `BlindspotPlaceholder` ; panel masquÃ© si liste vide
+- CTA "CrÃ©er une fiche â†‘" â†’ `POST /api/fiches` (draft direct, visible immÃ©diatement dans "Ã€ valider")
+

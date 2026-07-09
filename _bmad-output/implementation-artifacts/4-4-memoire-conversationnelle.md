@@ -1,36 +1,36 @@
----
+﻿---
 baseline_commit: d929af4
 ---
 
-# Story 4.4 : Mémoire conversationnelle
+# Story 4.4 : MÃ©moire conversationnelle
 
-Status: review
+Status: done
 
 ## Story
 
-En tant que membre de l'équipe,
-Je veux que l'assistant se souvienne de mes conversations précédentes,
-Afin de ne pas perdre le contexte à chaque rechargement de page.
+En tant que membre de l'Ã©quipe,
+Je veux que l'assistant se souvienne de mes conversations prÃ©cÃ©dentes,
+Afin de ne pas perdre le contexte Ã  chaque rechargement de page.
 
 ## Acceptance Criteria
 
-1. Au chargement de la vue Assistant, les 10 derniers messages de l'utilisateur sont rechargés depuis la DB (ordre chronologique ASC)
-2. Chaque échange (message user + réponse assistant) est sauvegardé en DB après la fin du stream
-3. Les messages de plus de 90 jours sont supprimés automatiquement lors du chargement
-4. Le bouton "↺ Réinitialiser" vide l'historique local (comportement existant, sans impact sur la DB)
+1. Au chargement de la vue Assistant, les 10 derniers messages de l'utilisateur sont rechargÃ©s depuis la DB (ordre chronologique ASC)
+2. Chaque Ã©change (message user + rÃ©ponse assistant) est sauvegardÃ© en DB aprÃ¨s la fin du stream
+3. Les messages de plus de 90 jours sont supprimÃ©s automatiquement lors du chargement
+4. Le bouton "â†º RÃ©initialiser" vide l'historique local (comportement existant, sans impact sur la DB)
 
-> **Note d'adaptation** : l'AC original prévoyait des historiques séparés par profil — les profils ayant été supprimés (Story 4.1), l'historique est simplement per-user sans segmentation.
+> **Note d'adaptation** : l'AC original prÃ©voyait des historiques sÃ©parÃ©s par profil â€” les profils ayant Ã©tÃ© supprimÃ©s (Story 4.1), l'historique est simplement per-user sans segmentation.
 
 ## Dev Notes
 
-### Architecture — fichiers à créer/modifier
+### Architecture â€” fichiers Ã  crÃ©er/modifier
 
 | Fichier | Action |
 |---|---|
 | `supabase/migrations/011_chat_messages.sql` | NEW |
-| `lib/supabase/types.ts` | MODIFY — ajouter `ChatMessage` |
-| `app/api/chat/messages/route.ts` | NEW — GET + POST |
-| `app/(dashboard)/assistant/page.tsx` | MODIFY — load + save |
+| `lib/supabase/types.ts` | MODIFY â€” ajouter `ChatMessage` |
+| `app/api/chat/messages/route.ts` | NEW â€” GET + POST |
+| `app/(dashboard)/assistant/page.tsx` | MODIFY â€” load + save |
 
 ---
 
@@ -71,7 +71,7 @@ export interface ChatMessage {
 }
 ```
 
-`Source` est déjà défini dans `assistant/page.tsx` — ne pas importer depuis types.ts. Utiliser `unknown` ou `Record<string, unknown>[]` en DB, re-typer côté frontend.
+`Source` est dÃ©jÃ  dÃ©fini dans `assistant/page.tsx` â€” ne pas importer depuis types.ts. Utiliser `unknown` ou `Record<string, unknown>[]` en DB, re-typer cÃ´tÃ© frontend.
 
 ---
 
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
 }
 ```
 
-**Note** : utiliser `createClient()` (user-scoped) — RLS gère le filtrage par user_id automatiquement.
+**Note** : utiliser `createClient()` (user-scoped) â€” RLS gÃ¨re le filtrage par user_id automatiquement.
 
 ---
 
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
 
 #### 1. Charger l'historique au montage
 
-Ajouter un `useEffect` séparé (après celui de `loadUser`) :
+Ajouter un `useEffect` sÃ©parÃ© (aprÃ¨s celui de `loadUser`) :
 
 ```ts
 useEffect(() => {
@@ -158,9 +158,9 @@ useEffect(() => {
 }, [])
 ```
 
-#### 2. Sauvegarder après le stream
+#### 2. Sauvegarder aprÃ¨s le stream
 
-Dans `sendMessage`, après le `while (true)` loop, ajouter la sauvegarde fire-and-forget. Utiliser des variables locales pour capturer le texte et les sources finaux :
+Dans `sendMessage`, aprÃ¨s le `while (true)` loop, ajouter la sauvegarde fire-and-forget. Utiliser des variables locales pour capturer le texte et les sources finaux :
 
 ```ts
 const sendMessage = useCallback(async (overrideText?: string) => {
@@ -187,7 +187,7 @@ const sendMessage = useCallback(async (overrideText?: string) => {
       // ...
     }
 
-    // Après le while loop — sauvegarder (fire-and-forget)
+    // AprÃ¨s le while loop â€” sauvegarder (fire-and-forget)
     fetch('/api/chat/messages', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role: 'user', content: question }),
@@ -205,22 +205,22 @@ Les `fetch` de sauvegarde sont fire-and-forget (`.catch(() => {})`) pour ne pas 
 
 ---
 
-### Règles à respecter
+### RÃ¨gles Ã  respecter
 
-- `createClient()` (pas admin) pour les routes chat — RLS gère le filtrage
+- `createClient()` (pas admin) pour les routes chat â€” RLS gÃ¨re le filtrage
 - `export const dynamic = 'force-dynamic'` sur le GET
-- setState dans `async function loadHistory()` → pas directement dans le corps de l'effet
+- setState dans `async function loadHistory()` â†’ pas directement dans le corps de l'effet
 - Ne PAS await les fetch de sauvegarde dans `sendMessage` (ne pas bloquer l'UX)
 - La purge 90j est fire-and-forget aussi (`.then()`)
 
 ## Tasks
 
-- [x] 1. Créer `supabase/migrations/011_chat_messages.sql`
+- [x] 1. CrÃ©er `supabase/migrations/011_chat_messages.sql`
 - [x] 2. Ajouter `ChatMessage` dans `lib/supabase/types.ts`
-- [x] 3. Créer `app/api/chat/messages/route.ts` — GET (load 10 + purge 90j) + POST (save)
-- [x] 4. Modifier `app/(dashboard)/assistant/page.tsx` — useEffect loadHistory au montage
-- [x] 5. Modifier `app/(dashboard)/assistant/page.tsx` — sauvegarder user+bot dans sendMessage
-- [x] 6. `npm run lint` → 0 erreur
+- [x] 3. CrÃ©er `app/api/chat/messages/route.ts` â€” GET (load 10 + purge 90j) + POST (save)
+- [x] 4. Modifier `app/(dashboard)/assistant/page.tsx` â€” useEffect loadHistory au montage
+- [x] 5. Modifier `app/(dashboard)/assistant/page.tsx` â€” sauvegarder user+bot dans sendMessage
+- [x] 6. `npm run lint` â†’ 0 erreur
 
 ## File List
 
@@ -233,9 +233,10 @@ Les `fetch` de sauvegarde sont fire-and-forget (`.catch(() => {})`) pour ne pas 
 
 ### Completion Notes
 - Migration 011 : table `chat_messages` (user_id, role, content, sources JSONB, created_at), RLS own-policy, index user_id+created_at DESC
-- Type `ChatMessage` ajouté dans `lib/supabase/types.ts` (sources: Record<string,unknown>[])
-- `GET /api/chat/messages` : purge fire-and-forget 90j, sélection last 10 DESC, .reverse() pour ordre ASC affichage
+- Type `ChatMessage` ajoutÃ© dans `lib/supabase/types.ts` (sources: Record<string,unknown>[])
+- `GET /api/chat/messages` : purge fire-and-forget 90j, sÃ©lection last 10 DESC, .reverse() pour ordre ASC affichage
 - `POST /api/chat/messages` : insert avec user_id depuis auth, role+content+sources
 - `loadHistory` useEffect : charge les 10 derniers messages et hydrate `messages` state au montage
-- `sendMessage` : `finalText`+`finalSources` accumulés pendant le stream, sauvegardés en fire-and-forget après le while loop
-- Profils supprimés → historique per-user sans segmentation (AC3 original adapté)
+- `sendMessage` : `finalText`+`finalSources` accumulÃ©s pendant le stream, sauvegardÃ©s en fire-and-forget aprÃ¨s le while loop
+- Profils supprimÃ©s â†’ historique per-user sans segmentation (AC3 original adaptÃ©)
+

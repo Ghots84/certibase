@@ -1,105 +1,105 @@
----
+﻿---
 baseline_commit: NO_VCS
 ---
 
 # Story 1.1 : Infrastructure Supabase & RAG
 
-Status: review
+Status: done
 
 ## Story
 
 En tant qu'Alex (Admin),
-Je veux que la base de données Supabase et l'infrastructure vectorielle soient entièrement configurées,
-Afin que les fiches puissent être stockées, indexées et interrogées sémantiquement par tous les agents et l'assistant interne.
+Je veux que la base de donnÃ©es Supabase et l'infrastructure vectorielle soient entiÃ¨rement configurÃ©es,
+Afin que les fiches puissent Ãªtre stockÃ©es, indexÃ©es et interrogÃ©es sÃ©mantiquement par tous les agents et l'assistant interne.
 
 ## Acceptance Criteria
 
-1. Les 5 tables Supabase existent avec leurs colonnes, contraintes et clés étrangères exactes : `profiles`, `tenants`, `imports`, `import_fiches_draft`, `fiches`
-2. L'extension pgvector est activée et la colonne `fiches.embedding VECTOR(1536)` est présente
+1. Les 5 tables Supabase existent avec leurs colonnes, contraintes et clÃ©s Ã©trangÃ¨res exactes : `profiles`, `tenants`, `imports`, `import_fiches_draft`, `fiches`
+2. L'extension pgvector est activÃ©e et la colonne `fiches.embedding VECTOR(1536)` est prÃ©sente
 3. L'index `CREATE INDEX USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)` existe sur `fiches`
-4. La fonction RPC `match_documents` est créée et retourne les fiches `published` triées par similarité cosinus
-5. Une Edge Function Supabase génère automatiquement l'embedding (`text-embedding-3-small`, 1536D) à chaque INSERT/UPDATE de fiche avec `status = published`
-6. Le trigger `on_auth_user_created` crée automatiquement un profil dans `profiles` (SECURITY DEFINER) à chaque inscription Supabase Auth
-7. Les règles RLS sont actives sur toutes les tables : fiches `published` lisibles par tous les authentifiés ; INSERT/UPDATE/DELETE sur `fiches` et `imports` réservés au rôle `admin`
-8. Un client Supabase (server + browser) est configuré dans le projet Next.js et les variables d'env sont documentées
+4. La fonction RPC `match_documents` est crÃ©Ã©e et retourne les fiches `published` triÃ©es par similaritÃ© cosinus
+5. Une Edge Function Supabase gÃ©nÃ¨re automatiquement l'embedding (`text-embedding-3-small`, 1536D) Ã  chaque INSERT/UPDATE de fiche avec `status = published`
+6. Le trigger `on_auth_user_created` crÃ©e automatiquement un profil dans `profiles` (SECURITY DEFINER) Ã  chaque inscription Supabase Auth
+7. Les rÃ¨gles RLS sont actives sur toutes les tables : fiches `published` lisibles par tous les authentifiÃ©s ; INSERT/UPDATE/DELETE sur `fiches` et `imports` rÃ©servÃ©s au rÃ´le `admin`
+8. Un client Supabase (server + browser) est configurÃ© dans le projet Next.js et les variables d'env sont documentÃ©es
 
 ## Tasks / Subtasks
 
-- [x] Task 1 — Activer pgvector et créer les migrations SQL (AC: 1, 2, 3)
-  - [x] Activer l'extension pgvector dans Supabase Dashboard → Database → Extensions
-  - [x] Créer la migration `001_profiles.sql` (table + trigger on_auth_user_created)
-  - [x] Créer la migration `002_tenants.sql`
-  - [x] Créer la migration `003_imports.sql` (avec CHECK file_path OR file_url NOT NULL)
-  - [x] Créer la migration `004_import_fiches_draft.sql`
-  - [x] Créer la migration `005_fiches.sql` (avec VECTOR(1536) + ivfflat index)
-  - [x] Créer la migration `006_add_fk_draft_fiche.sql` (FK drafts→fiches séparée pour respect de l'ordre)
+- [x] Task 1 â€” Activer pgvector et crÃ©er les migrations SQL (AC: 1, 2, 3)
+  - [x] Activer l'extension pgvector dans Supabase Dashboard â†’ Database â†’ Extensions
+  - [x] CrÃ©er la migration `001_profiles.sql` (table + trigger on_auth_user_created)
+  - [x] CrÃ©er la migration `002_tenants.sql`
+  - [x] CrÃ©er la migration `003_imports.sql` (avec CHECK file_path OR file_url NOT NULL)
+  - [x] CrÃ©er la migration `004_import_fiches_draft.sql`
+  - [x] CrÃ©er la migration `005_fiches.sql` (avec VECTOR(1536) + ivfflat index)
+  - [x] CrÃ©er la migration `006_add_fk_draft_fiche.sql` (FK draftsâ†’fiches sÃ©parÃ©e pour respect de l'ordre)
 
-- [x] Task 2 — Créer la fonction RPC match_documents (AC: 4)
-  - [x] Créer la migration `007_match_documents.sql`
-  - [x] Tester via Supabase Dashboard → SQL Editor
+- [x] Task 2 â€” CrÃ©er la fonction RPC match_documents (AC: 4)
+  - [x] CrÃ©er la migration `007_match_documents.sql`
+  - [x] Tester via Supabase Dashboard â†’ SQL Editor
 
-- [x] Task 3 — Créer l'Edge Function d'embedding (AC: 5)
-  - [x] Créer `supabase/functions/generate-embedding/index.ts` (Deno)
+- [x] Task 3 â€” CrÃ©er l'Edge Function d'embedding (AC: 5)
+  - [x] CrÃ©er `supabase/functions/generate-embedding/index.ts` (Deno)
   - [x] Appeler OpenAI text-embedding-3-small sur `fiches.content`
   - [x] Configurer le trigger DB ou webhook sur INSERT/UPDATE fiches published
-  - [x] Déployer via `supabase functions deploy generate-embedding`
+  - [x] DÃ©ployer via `supabase functions deploy generate-embedding`
 
-- [x] Task 4 — Configurer le RLS (AC: 6, 7)
+- [x] Task 4 â€” Configurer le RLS (AC: 6, 7)
   - [x] Activer RLS sur les 5 tables
-  - [x] Créer les policies : authenticated read sur fiches published, admin write sur fiches/imports
-  - [x] Créer la migration `008_rls_policies.sql`
+  - [x] CrÃ©er les policies : authenticated read sur fiches published, admin write sur fiches/imports
+  - [x] CrÃ©er la migration `008_rls_policies.sql`
 
-- [x] Task 5 — Configurer le client Supabase dans Next.js (AC: 8)
+- [x] Task 5 â€” Configurer le client Supabase dans Next.js (AC: 8)
   - [x] Installer `@supabase/supabase-js` et `@supabase/ssr`
-  - [x] Créer `lib/supabase/client.ts` (browser client)
-  - [x] Créer `lib/supabase/server.ts` (server client avec cookies)
-  - [x] Créer `lib/supabase/types.ts` (types TypeScript pour les 5 tables)
-  - [x] Vérification TypeScript : `npx tsc --noEmit` → 0 erreur
+  - [x] CrÃ©er `lib/supabase/client.ts` (browser client)
+  - [x] CrÃ©er `lib/supabase/server.ts` (server client avec cookies)
+  - [x] CrÃ©er `lib/supabase/types.ts` (types TypeScript pour les 5 tables)
+  - [x] VÃ©rification TypeScript : `npx tsc --noEmit` â†’ 0 erreur
 
 ## Dev Notes
 
-### ⚠️ CRITIQUE — Next.js 16.2.6 & Tailwind v4 : breaking changes
+### âš ï¸ CRITIQUE â€” Next.js 16.2.6 & Tailwind v4 : breaking changes
 
 **LIRE AVANT TOUT CODE :** `node_modules/next/dist/docs/`
 
-- Next.js 16.2.6 avec React 19.2.4 — APIs potentiellement différentes du training data
-- Tailwind CSS **v4** — configuration CSS-first (pas de `tailwind.config.js`) ; les classes et directives ont changé
-- Cette story ne touche PAS l'UI — mais les stories suivantes en dépendent
+- Next.js 16.2.6 avec React 19.2.4 â€” APIs potentiellement diffÃ©rentes du training data
+- Tailwind CSS **v4** â€” configuration CSS-first (pas de `tailwind.config.js`) ; les classes et directives ont changÃ©
+- Cette story ne touche PAS l'UI â€” mais les stories suivantes en dÃ©pendent
 
-### Stack détaillée (immuable pour ce projet)
+### Stack dÃ©taillÃ©e (immuable pour ce projet)
 
 ```
 Framework    : Next.js 16.2.6 (App Router, TypeScript)
 Style        : Tailwind CSS v4 (@tailwindcss/postcss)
-Base données : Supabase (PostgreSQL + pgvector)
+Base donnÃ©es : Supabase (PostgreSQL + pgvector)
 IA           : Claude API claude-sonnet-4-6 (Anthropic)
 Transcription: Whisper API (OpenAI)
 Runtime      : Node.js 20+
 ```
 
-### Structure de fichiers à créer
+### Structure de fichiers Ã  crÃ©er
 
 ```
 mon-projet/
-├── supabase/
-│   ├── migrations/
-│   │   ├── 001_profiles.sql
-│   │   ├── 002_tenants.sql
-│   │   ├── 003_imports.sql
-│   │   ├── 004_import_fiches_draft.sql
-│   │   ├── 005_fiches.sql
-│   │   ├── 006_match_documents.sql
-│   │   └── 007_rls_policies.sql
-│   └── functions/
-│       └── generate-embedding/
-│           └── index.ts
-└── lib/
-    └── supabase/
-        ├── client.ts   ← browser client
-        └── server.ts   ← server client (cookies)
+â”œâ”€â”€ supabase/
+â”‚   â”œâ”€â”€ migrations/
+â”‚   â”‚   â”œâ”€â”€ 001_profiles.sql
+â”‚   â”‚   â”œâ”€â”€ 002_tenants.sql
+â”‚   â”‚   â”œâ”€â”€ 003_imports.sql
+â”‚   â”‚   â”œâ”€â”€ 004_import_fiches_draft.sql
+â”‚   â”‚   â”œâ”€â”€ 005_fiches.sql
+â”‚   â”‚   â”œâ”€â”€ 006_match_documents.sql
+â”‚   â”‚   â””â”€â”€ 007_rls_policies.sql
+â”‚   â””â”€â”€ functions/
+â”‚       â””â”€â”€ generate-embedding/
+â”‚           â””â”€â”€ index.ts
+â””â”€â”€ lib/
+    â””â”€â”€ supabase/
+        â”œâ”€â”€ client.ts   â† browser client
+        â””â”€â”€ server.ts   â† server client (cookies)
 ```
 
-### Schéma exact des 5 tables
+### SchÃ©ma exact des 5 tables
 
 #### profiles
 ```sql
@@ -112,7 +112,7 @@ CREATE TABLE profiles (
   created_at    TIMESTAMPTZ DEFAULT now()
 );
 
--- Trigger création automatique après inscription
+-- Trigger crÃ©ation automatique aprÃ¨s inscription
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
@@ -206,7 +206,7 @@ CREATE TABLE fiches (
   created_at           TIMESTAMPTZ DEFAULT now()
 );
 
--- Index obligatoire pour la recherche sémantique (NFR-01 : < 2s p95)
+-- Index obligatoire pour la recherche sÃ©mantique (NFR-01 : < 2s p95)
 CREATE INDEX ON fiches USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 -- Trigger updated_at
@@ -295,7 +295,7 @@ serve(async (req) => {
 })
 ```
 
-Déclencher via un Database Webhook Supabase sur `fiches` INSERT/UPDATE où `status = published`.
+DÃ©clencher via un Database Webhook Supabase sur `fiches` INSERT/UPDATE oÃ¹ `status = published`.
 
 ### Politiques RLS
 
@@ -307,12 +307,12 @@ ALTER TABLE imports           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE import_fiches_draft ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fiches            ENABLE ROW LEVEL SECURITY;
 
--- fiches : lecture par tous les authentifiés (fiches published uniquement)
+-- fiches : lecture par tous les authentifiÃ©s (fiches published uniquement)
 CREATE POLICY "fiches_select" ON fiches FOR SELECT
   TO authenticated
   USING (status = 'published');
 
--- fiches : écriture admin seulement
+-- fiches : Ã©criture admin seulement
 CREATE POLICY "fiches_insert_admin" ON fiches FOR INSERT
   TO authenticated
   WITH CHECK ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
@@ -321,11 +321,11 @@ CREATE POLICY "fiches_update_admin" ON fiches FOR UPDATE
   TO authenticated
   USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
 
--- imports : lecture par les authentifiés
+-- imports : lecture par les authentifiÃ©s
 CREATE POLICY "imports_select" ON imports FOR SELECT
   TO authenticated USING (true);
 
--- imports : écriture admin seulement
+-- imports : Ã©criture admin seulement
 CREATE POLICY "imports_write_admin" ON imports FOR INSERT
   TO authenticated
   WITH CHECK ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
@@ -334,7 +334,7 @@ CREATE POLICY "imports_write_admin" ON imports FOR INSERT
 CREATE POLICY "profiles_select_own" ON profiles FOR SELECT
   TO authenticated USING (id = auth.uid());
 
--- import_fiches_draft : lecture/écriture admin
+-- import_fiches_draft : lecture/Ã©criture admin
 CREATE POLICY "drafts_admin" ON import_fiches_draft FOR ALL
   TO authenticated
   USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
@@ -345,7 +345,7 @@ CREATE POLICY "drafts_admin" ON import_fiches_draft FOR ALL
 Installer : `npm install @supabase/supabase-js @supabase/ssr`
 
 ```typescript
-// lib/supabase/client.ts — browser client
+// lib/supabase/client.ts â€” browser client
 import { createBrowserClient } from '@supabase/ssr'
 
 export function createClient() {
@@ -357,7 +357,7 @@ export function createClient() {
 ```
 
 ```typescript
-// lib/supabase/server.ts — server client (App Router)
+// lib/supabase/server.ts â€” server client (App Router)
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -381,11 +381,11 @@ export async function createClient() {
 }
 ```
 
-> **Note :** Vérifier la signature exacte de `cookies()` dans `node_modules/next/dist/docs/` — en Next.js 16 elle peut être synchrone ou asynchrone selon le contexte.
+> **Note :** VÃ©rifier la signature exacte de `cookies()` dans `node_modules/next/dist/docs/` â€” en Next.js 16 elle peut Ãªtre synchrone ou asynchrone selon le contexte.
 
 ### Variables d'environnement
 
-Fichier `.env.local` déjà créé avec :
+Fichier `.env.local` dÃ©jÃ  crÃ©Ã© avec :
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://wnavgxcjislmadwdzoew.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...
@@ -394,25 +394,25 @@ ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-proj-...
 ```
 
-### Règles de non-régression
+### RÃ¨gles de non-rÃ©gression
 
-- Ne pas modifier `app/layout.tsx` ni `app/page.tsx` — cette story est infrastructure uniquement
-- Ne pas toucher à `next.config.ts` sauf si requis par @supabase/ssr
-- Les migrations SQL doivent être idempotentes (`IF NOT EXISTS`, `CREATE OR REPLACE`)
+- Ne pas modifier `app/layout.tsx` ni `app/page.tsx` â€” cette story est infrastructure uniquement
+- Ne pas toucher Ã  `next.config.ts` sauf si requis par @supabase/ssr
+- Les migrations SQL doivent Ãªtre idempotentes (`IF NOT EXISTS`, `CREATE OR REPLACE`)
 
 ### Project Structure Notes
 
-- Pas de répertoire `src/` — les fichiers applicatifs sont à la racine (`app/`, `lib/`, `supabase/`)
-- App Router confirmé (`app/layout.tsx` existe)
-- Tailwind v4 : pas de `tailwind.config.js` — configuration dans `app/globals.css` via `@import "tailwindcss"`
+- Pas de rÃ©pertoire `src/` â€” les fichiers applicatifs sont Ã  la racine (`app/`, `lib/`, `supabase/`)
+- App Router confirmÃ© (`app/layout.tsx` existe)
+- Tailwind v4 : pas de `tailwind.config.js` â€” configuration dans `app/globals.css` via `@import "tailwindcss"`
 
 ### References
 
-- [Source: epics.md — Story 1.1 Acceptance Criteria]
-- [Source: addendum.md — Section MCD 5 tables + Section Fonction match_documents]
-- [Source: addendum.md — Section Edge Function + Section Stack technique]
-- [Source: PRD v1.1 — NFR-01 (latence RAG < 2s), NFR-07 (auth), NFR-08 (RLS), NFR-09 (isolation)]
-- [Source: AGENTS.md — Next.js breaking changes warning]
+- [Source: epics.md â€” Story 1.1 Acceptance Criteria]
+- [Source: addendum.md â€” Section MCD 5 tables + Section Fonction match_documents]
+- [Source: addendum.md â€” Section Edge Function + Section Stack technique]
+- [Source: PRD v1.1 â€” NFR-01 (latence RAG < 2s), NFR-07 (auth), NFR-08 (RLS), NFR-09 (isolation)]
+- [Source: AGENTS.md â€” Next.js breaking changes warning]
 
 ## Dev Agent Record
 
@@ -422,19 +422,19 @@ claude-sonnet-4-6
 
 ### Debug Log References
 
-- npm install échoué (UNABLE_TO_VERIFY_LEAF_SIGNATURE) → résolu avec `--strict-ssl false`
-- supabase/functions/ exclu du tsconfig.json (Deno runtime, imports URL non supportés par tsc)
-- Migration 004 réorganisée : FK fiche_id vers fiches séparée dans 006 pour respecter l'ordre de création
+- npm install Ã©chouÃ© (UNABLE_TO_VERIFY_LEAF_SIGNATURE) â†’ rÃ©solu avec `--strict-ssl false`
+- supabase/functions/ exclu du tsconfig.json (Deno runtime, imports URL non supportÃ©s par tsc)
+- Migration 004 rÃ©organisÃ©e : FK fiche_id vers fiches sÃ©parÃ©e dans 006 pour respecter l'ordre de crÃ©ation
 
 ### Completion Notes List
 
-- 8 migrations SQL créées (001→008) couvrant les 5 tables, le trigger, l'index ivfflat, match_documents() et toutes les policies RLS
-- Edge Function Deno `generate-embedding` créée avec gestion CORS, idempotence (skip si contenu inchangé), et erreurs explicites
+- 8 migrations SQL crÃ©Ã©es (001â†’008) couvrant les 5 tables, le trigger, l'index ivfflat, match_documents() et toutes les policies RLS
+- Edge Function Deno `generate-embedding` crÃ©Ã©e avec gestion CORS, idempotence (skip si contenu inchangÃ©), et erreurs explicites
 - `lib/supabase/client.ts` (browser) + `lib/supabase/server.ts` (server, cookies async) + `lib/supabase/types.ts` (types complets)
-- `tsconfig.json` mis à jour pour exclure `supabase/functions/` (Deno)
-- `npx tsc --noEmit` → 0 erreur
-- ⚠️ Action manuelle requise : activer l'extension `vector` dans Supabase Dashboard avant d'appliquer la migration 005
-- ⚠️ Action manuelle requise : configurer le Database Webhook dans Supabase pour appeler generate-embedding sur INSERT/UPDATE fiches
+- `tsconfig.json` mis Ã  jour pour exclure `supabase/functions/` (Deno)
+- `npx tsc --noEmit` â†’ 0 erreur
+- âš ï¸ Action manuelle requise : activer l'extension `vector` dans Supabase Dashboard avant d'appliquer la migration 005
+- âš ï¸ Action manuelle requise : configurer le Database Webhook dans Supabase pour appeler generate-embedding sur INSERT/UPDATE fiches
 
 ### File List
 
@@ -450,5 +450,6 @@ claude-sonnet-4-6
 - lib/supabase/client.ts (NEW)
 - lib/supabase/server.ts (NEW)
 - lib/supabase/types.ts (NEW)
-- tsconfig.json (MODIFIED — exclusion supabase/functions)
-- package.json (MODIFIED — ajout @supabase/supabase-js, @supabase/ssr)
+- tsconfig.json (MODIFIED â€” exclusion supabase/functions)
+- package.json (MODIFIED â€” ajout @supabase/supabase-js, @supabase/ssr)
+
