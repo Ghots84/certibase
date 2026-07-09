@@ -3,15 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { runImportPipeline } from '@/lib/import-pipeline'
 
-const ALLOWED_HOSTS = new Set([
-  'youtube.com', 'www.youtube.com', 'youtu.be',
-  'zoom.us', 'us02web.zoom.us',
-])
-
 function isAllowedUrl(raw: string): boolean {
   try {
-    const { hostname } = new URL(raw)
-    return ALLOWED_HOSTS.has(hostname)
+    const { protocol } = new URL(raw)
+    return protocol === 'https:'
   } catch {
     return false
   }
@@ -34,7 +29,7 @@ export async function POST(request: Request) {
 
   if (!isAllowedUrl(url)) {
     return Response.json({
-      error: 'URL non supportée. Domaines acceptés : YouTube, Zoom',
+      error: 'URL invalide. Seules les URLs https:// sont acceptées.',
     }, { status: 400 })
   }
 

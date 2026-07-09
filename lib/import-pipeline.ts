@@ -31,6 +31,16 @@ async function fetchYouTubeCaptions(videoId: string): Promise<string> {
   throw new Error('Aucun sous-titre disponible pour cette vidéo YouTube')
 }
 
+async function fetchWebPage(url: string): Promise<string> {
+  const res = await fetch(`https://r.jina.ai/${url}`, {
+    headers: { 'Accept': 'text/plain', 'X-Return-Format': 'markdown' },
+  })
+  if (!res.ok) throw new Error(`Jina.ai : impossible de lire la page (${res.status})`)
+  const text = await res.text()
+  if (!text.trim()) throw new Error('Page vide ou contenu non extractible')
+  return text
+}
+
 // ── Extraction dispatch ──────────────────────────────────────────────────────
 
 // Whisper accepte max 25 MB par appel — on découpe les fichiers plus lourds
@@ -274,8 +284,11 @@ export async function runImportPipeline(importId: string): Promise<{ fiches_coun
     } else if (imp.file_type === 'url') {
       if (!imp.file_url) throw new Error('URL manquante')
       const videoId = extractYouTubeId(imp.file_url)
-      if (!videoId) throw new Error("URL YouTube invalide — impossible d'extraire le videoId")
-      transcription = await fetchYouTubeCaptions(videoId)
+      if (videoId) {
+        transcription = await fetchYouTubeCaptions(videoId)
+      } else {
+        transcription = await fetchWebPage(imp.file_url)
+      }
 
     } else {
       throw new Error(`Type d'import non supporté : ${imp.file_type}`)
