@@ -60,7 +60,6 @@ const PROFIL_LABEL: Record<string, string> = {
   all:       'Tous les profils',
   csm:       'CSM',
   sales:     'Sales',
-  new:       'Nouveau',
   csm_sales: 'CSM + Sales',
 }
 

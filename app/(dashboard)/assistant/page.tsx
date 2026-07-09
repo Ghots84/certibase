@@ -263,8 +263,6 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   admin: { label: 'Knowledge Manager', color: '#7A5AF8' },
   csm:   { label: 'Customer Success',  color: '#2D7DD2' },
   sales: { label: 'Account Executive', color: '#E8651E' },
-  ops:   { label: 'Operations',        color: '#1F8A5B' },
-  new:   { label: 'Lecture seule',     color: '#8A94A2' },
 }
 
 export default function AssistantPage() {

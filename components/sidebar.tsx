@@ -26,16 +26,12 @@ const ROLE_COLORS: Record<string, string> = {
   admin: '#7A5AF8',
   csm:   '#2D7DD2',
   sales: '#E8651E',
-  ops:   '#F59E0B',
-  new:   '#8A94A2',
 }
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Knowledge Manager',
   csm:   'Customer Success',
   sales: 'Account Executive',
-  ops:   'Operations',
-  new:   'Nouveau',
 }
 
 function getInitials(name: string | null, email: string): string {
@@ -60,7 +56,7 @@ export default async function Sidebar() {
 
   const email = profile?.email ?? user?.email ?? ''
   const initials = profile?.avatar_initials ?? getInitials(profile?.full_name ?? null, email)
-  const role = profile?.role ?? 'new'
+  const role = profile?.role ?? 'csm'
   const avatarColor = ROLE_COLORS[role] ?? '#8A94A2'
   const roleLabel = ROLE_LABELS[role] ?? role
   const isAdmin = role === 'admin'

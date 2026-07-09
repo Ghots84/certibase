@@ -15,7 +15,6 @@ const ROLE_CONTEXT: Record<string, string> = {
   csm:   '- Tu réponds à un Customer Success Manager (CSM). Priorise les guides de situation, protocoles de résolution et étapes de suivi client. Mets en avant les actions concrètes et les messages type.',
   sales: '- Tu réponds à un Account Executive (Sales). Priorise les objections clients, arguments commerciaux et cas clients chiffrés. Sois percutant et orienté résultat.',
   admin: '- Tu réponds à un Knowledge Manager (Admin). Donne une vue complète : tous types de fiches, y compris les angles morts et les informations techniques avancées.',
-  ops:   '- Tu réponds à un membre de l\'équipe Opérations. Priorise les processus, la documentation interne et les guides pratiques.',
 }
 
 export async function POST(request: Request) {

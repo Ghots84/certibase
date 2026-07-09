@@ -15,5 +15,5 @@ export async function GET() {
     .eq('id', user.id)
     .single()
 
-  return Response.json({ id: user.id, role: profile?.role ?? 'new', full_name: profile?.full_name, email: profile?.email ?? user.email })
+  return Response.json({ id: user.id, role: profile?.role ?? 'csm', full_name: profile?.full_name, email: profile?.email ?? user.email })
 }

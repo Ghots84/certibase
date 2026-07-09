@@ -18,16 +18,12 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Knowledge Manager',
   csm:   'Customer Success',
   sales: 'Account Executive',
-  ops:   'Operations',
-  new:   'Nouveau',
 }
 
 const ROLE_COLORS: Record<string, string> = {
   admin: '#7A5AF8',
   csm:   '#2D7DD2',
   sales: '#E8651E',
-  ops:   '#F59E0B',
-  new:   '#8A94A2',
 }
 
 function getInitials(profile: Profile) {
@@ -183,7 +179,7 @@ export default async function UsersPage() {
           ))}
         </div>
 
-        {/* Info role new */}
+        {/* Info rôles */}
         <div
           className="mt-4 rounded-xl px-5 py-4 text-[12.5px]"
           style={{
@@ -192,8 +188,11 @@ export default async function UsersPage() {
             color: 'var(--text-muted)',
           }}
         >
-          <span className="font-semibold" style={{ color: 'var(--text)' }}>Rôle Nouveau</span>
-          {' '}— lecture seule : consultation des fiches publiées et de l&apos;assistant. Aucune action d&apos;écriture autorisée.
+          <span className="font-semibold" style={{ color: 'var(--text)' }}>Customer Success</span>
+          {' '}— accès aux fiches CSM et à l&apos;assistant orienté suivi client.
+          {' · '}
+          <span className="font-semibold" style={{ color: 'var(--text)' }}>Account Executive</span>
+          {' '}— accès aux fiches Sales et à l&apos;assistant orienté commercial.
         </div>
       </div>
     </div>

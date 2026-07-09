@@ -1,11 +1,11 @@
 // Types TypeScript pour les tables Supabase CertiBase
 // Synchronisé avec les migrations SQL (supabase/migrations/)
 
-export type UserRole = 'admin' | 'csm' | 'sales' | 'new'
+export type UserRole = 'admin' | 'csm' | 'sales'
 export type ImportFileType = 'audio' | 'video' | 'pdf' | 'url'
 export type ImportType = 'webinar' | 'presentation' | 'sales_call' | 'internal_doc' | 'other'
 export type ImportStatus = 'pending' | 'extracting' | 'analyzing' | 'ready' | 'error'
-export type ProfilCible = 'csm' | 'sales' | 'new' | 'all' | 'csm_sales'
+export type ProfilCible = 'csm' | 'sales' | 'all' | 'csm_sales'
 export type FicheType = 'objection' | 'guide_situation' | 'cas_client' | 'concurrent' | 'doc_certiplace' | 'veille' | 'support'
 export type FicheSource = 'manual' | 'webinar' | 'presentation' | 'sales_call' | 'doc' | 'n8n'
 export type FicheStatus = 'draft' | 'published' | 'archived'
