@@ -1,0 +1,312 @@
+<!--
+  KEY SCREEN — Assistant (chat)
+  Governed by:
+    DESIGN.md → components.chat-bubble (user vs assistant radius/background, draft-block tokens:
+                surface-2 bg + primary 3px left accent + Copier button, source-chip tokens), Colors (role-sales
+                pill reusing primary hex as a *separate* role token), Typography (body for message text)
+    EXPERIENCE.md → Component Patterns row "chat-bubble" (three successive states: dots → streaming with
+                cursor → parsed <draft> + source chips + Copier), Interaction Primitives ("Entrée" sends,
+                "Maj+Entrée" newline), Key Flow 3 (Sofia / objection prix / <draft> block / source chips)
+  Visual register matched to .working/direction-modern-saas.html (soft elevation, generous radius, confident orange).
+  Real content sourced from app/(dashboard)/assistant/page.tsx (header copy, ROLE_LABELS, DraftBlock markup,
+  SourceChip markup, input placeholder + Maj+Entrée caption, 3-dot loading state).
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>CertiBase — Assistant — Key Screen</title>
+<style>
+:root{
+  --bg:#F6F7F9; --surface:#FFFFFF; --surface-2:#F1F3F6; --surface-hover:#F6F8FB;
+  --text:#15212E; --text-muted:#5B6675; --text-faint:#8A94A2;
+  --border:#E3E7EC; --border-strong:#D2D8E0;
+
+  --sidebar-bg:#122E47; --sidebar-bg-hover:#16385A; --sidebar-text:#E7EDF4;
+  --sidebar-muted:#8AA0B5; --sidebar-active-bg:rgba(232,101,30,.16);
+  --sidebar-active-text:#FFFFFF; --sidebar-active-bar:#E8651E; --sidebar-border:rgba(255,255,255,.08);
+
+  --primary:#E8651E; --primary-hover:#D2570F; --primary-text:#FFFFFF;
+  --primary-soft:#FCEDE3; --primary-soft-text:#B14E10; --primary-gradient-end:#FF8A4C;
+
+  --accent:#1E5B9E; --accent-soft:#E8F0F8; --accent-soft-text:#1E5B9E;
+
+  --success:#1F8A5B; --success-soft:#E3F3EB;
+  --warning:#B8770C; --warning-soft:#FBF0DA;
+  --danger:#C0392B; --danger-soft:#F8E4E1;
+
+  --role-sales:#E8651E;
+
+  --r-sm:6px; --r:8px; --r-md:10px; --r-lg:12px; --r-xl:16px; --r-2xl:20px; --r-full:9999px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:"Public Sans","Segoe UI",-apple-system,BlinkMacSystemFont,system-ui,Roboto,Arial,sans-serif;
+  background:#2b2b2b;display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.browser-chrome{
+  width:1400px;height:900px;background:var(--surface);border-radius:14px;overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.5);display:flex;flex-direction:column;
+}
+.chrome-bar{height:36px;background:#efefef;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;}
+.dot{width:11px;height:11px;border-radius:50%;}
+.dot.r{background:#ff5f57;} .dot.y{background:#febc2e;} .dot.g{background:#28c840;}
+.url{margin-left:16px;background:#fff;border-radius:20px;padding:4px 14px;font-size:11px;color:#777;flex:1;max-width:320px;border:1px solid #e2e2e2;}
+.app{flex:1;display:flex;overflow:hidden;}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+.sidebar{
+  width:248px;flex-shrink:0;background:var(--sidebar-bg);border-right:1px solid var(--sidebar-border);
+  padding:18px 12px;display:flex;flex-direction:column;gap:2px;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px;margin-bottom:20px;}
+.brand-mark{
+  width:34px;height:34px;border-radius:var(--r-md);background:var(--primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;letter-spacing:-.02em;flex-shrink:0;
+}
+.brand-name{font-size:14.5px;font-weight:800;color:var(--sidebar-text);}
+.brand-sub{font-size:10.5px;color:var(--sidebar-muted);margin-top:1px;}
+.nav-section-label{
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sidebar-muted);
+  padding:0 8px;margin:4px 0 6px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 11px 9px 8px;margin-bottom:2px;
+  border-left:3px solid transparent;border-radius:var(--r-md);
+  color:var(--sidebar-muted);font-size:13.5px;font-weight:500;text-decoration:none;
+}
+.nav-item .ic{width:16px;text-align:center;font-size:14px;flex-shrink:0;}
+.nav-item:hover{background:rgba(255,255,255,.07);color:var(--sidebar-text);}
+.nav-item.active{background:var(--sidebar-active-bg);color:var(--sidebar-active-text);font-weight:600;border-left-color:var(--sidebar-active-bar);}
+.nav-badge{
+  margin-left:auto;font-size:10.5px;font-weight:700;color:var(--sidebar-muted);
+  background:rgba(255,255,255,.08);padding:1px 7px;border-radius:var(--r-full);
+}
+.nav-item.active .nav-badge{color:rgba(255,255,255,.75);background:rgba(255,255,255,.16);}
+.nav-item.admin{margin-top:10px;color:#8FA0B0;}
+
+/* ── Main / header ───────────────────────────────────────────────────── */
+.main{flex:1;background:var(--bg);display:flex;flex-direction:column;overflow:hidden;}
+.chat-header{
+  display:flex;align-items:center;justify-content:space-between;padding:16px 28px;flex-shrink:0;
+  border-bottom:1px solid var(--border);background:var(--surface);
+}
+h1{font-size:17px;font-weight:700;color:var(--text);}
+.header-sub-row{display:flex;align-items:center;gap:8px;margin-top:3px;}
+.subtitle{font-size:12.5px;color:var(--text-muted);}
+.role-pill{
+  font-size:11px;font-weight:600;padding:2px 10px;border-radius:var(--r-full);
+  background:rgba(232,101,30,.10);color:var(--role-sales);
+}
+.reset-btn{
+  font-size:12px;padding:6px 12px;border-radius:var(--r-md);background:transparent;
+  border:1px solid var(--border);color:var(--text-faint);
+}
+
+/* ── Messages ────────────────────────────────────────────────────────── */
+.messages{flex:1;overflow-y:auto;padding:24px 0;}
+.messages-inner{max-width:720px;margin:0 auto;padding:0 24px;display:flex;flex-direction:column;gap:20px;}
+
+.msg-row{display:flex;}
+.msg-row.user{justify-content:flex-end;}
+.msg-row.assistant{justify-content:flex-start;}
+
+.bubble-user{
+  background:var(--primary);color:#fff;border-radius:18px 18px 4px 18px;
+  padding:10px 16px;font-size:14px;line-height:1.6;max-width:72%;
+}
+
+.assistant-wrap{display:flex;flex-direction:column;gap:8px;max-width:82%;}
+.assistant-inner{display:flex;align-items:flex-start;gap:10px;}
+.avatar{
+  width:32px;height:32px;border-radius:var(--r-lg);background:var(--primary-soft);color:var(--primary);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;
+}
+.bubble-assistant{
+  background:var(--surface);border:1px solid var(--border);border-radius:18px 18px 18px 4px;
+  padding:12px 16px;font-size:14px;line-height:1.65;color:var(--text);flex:1;
+}
+.bubble-assistant p{margin:0 0 10px;}
+.bubble-assistant p:last-child{margin-bottom:0;}
+
+/* draft-block */
+.draft-block{
+  background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--primary);
+  border-radius:var(--r);padding:12px 14px;margin:10px 0 2px;
+}
+.draft-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.draft-label{font-size:12.5px;font-weight:600;color:var(--primary);}
+.copy-btn{
+  padding:3px 10px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface);
+  color:var(--text-faint);font-size:11.5px;font-weight:500;
+}
+.draft-text{margin:0;font-size:13.5px;color:var(--text-muted);font-style:italic;line-height:1.65;}
+
+/* sources */
+.sources-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding-left:42px;}
+.sources-eyebrow{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);}
+.source-chip{
+  display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:var(--r-md);
+  background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);font-size:11.5px;
+}
+.source-type{
+  background:var(--accent-soft);color:var(--accent-soft-text);font-size:10px;font-weight:600;
+  padding:1px 6px;border-radius:4px;
+}
+.source-pct{
+  font-size:10px;color:var(--text-faint);background:var(--surface);border:1px solid var(--border);
+  padding:1px 5px;border-radius:4px;font-weight:600;font-variant-numeric:tabular-nums;
+}
+.copy-row{padding-left:42px;}
+.copy-row .copy-btn{padding:5px 12px;}
+
+/* loading dots */
+.dots{display:flex;gap:4px;align-items:center;padding:2px 0;}
+.dot-anim{
+  width:7px;height:7px;border-radius:50%;background:var(--primary);opacity:.5;
+  animation:cbbounce 1.2s ease-in-out infinite;
+}
+.dot-anim:nth-child(2){animation-delay:.18s;}
+.dot-anim:nth-child(3){animation-delay:.36s;}
+@keyframes cbbounce{0%,60%,100%{transform:translateY(0);opacity:.5;}30%{transform:translateY(-4px);opacity:1;}}
+
+.state-label{
+  font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;
+  margin:4px 0 -6px 42px;
+}
+
+/* ── Input bar ───────────────────────────────────────────────────────── */
+.input-bar{flex-shrink:0;padding:16px 24px;border-top:1px solid var(--border);background:var(--surface);}
+.input-inner{max-width:720px;margin:0 auto;}
+.input-shell{
+  display:flex;align-items:center;gap:12px;border-radius:var(--r-xl);padding:10px 16px;
+  background:var(--surface-2);border:1px solid var(--border-strong);
+}
+.input-shell input{
+  flex:1;border:none;background:transparent;outline:none;font-size:14px;color:var(--text);
+}
+.input-shell input::placeholder{color:var(--text-faint);}
+.send-btn{
+  width:38px;height:38px;border-radius:var(--r-md);background:var(--primary);color:#fff;border:none;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.input-caption{text-align:center;font-size:11px;color:var(--text-faint);margin-top:8px;font-variant-numeric:tabular-nums;}
+</style>
+</head>
+<body>
+<div class="browser-chrome">
+  <div class="chrome-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span class="url">app.certibase.io/assistant</span>
+  </div>
+  <div class="app">
+    <nav class="sidebar">
+      <div class="brand"><div class="brand-mark">CB</div><div><div class="brand-name">CertiBase</div><div class="brand-sub">Console interne</div></div></div>
+      <div class="nav-section-label">Navigation</div>
+      <a class="nav-item"><span class="ic">▦</span>Vue d'ensemble</a>
+      <a class="nav-item"><span class="ic">▤</span>Fiches<span class="nav-badge">8</span></a>
+      <a class="nav-item"><span class="ic">▲</span>Concurrents</a>
+      <a class="nav-item"><span class="ic">⇩</span>Imports<span class="nav-badge">4</span></a>
+      <a class="nav-item active"><span class="ic">◔</span>Assistant</a>
+    </nav>
+    <main class="main">
+      <div class="chat-header">
+        <div>
+          <h1>Assistant CertiBase</h1>
+          <div class="header-sub-row">
+            <span class="subtitle">Réponses basées sur les fiches de connaissance indexées</span>
+            <span class="role-pill">Account Executive</span>
+          </div>
+        </div>
+        <span class="reset-btn">↺ Réinitialiser</span>
+      </div>
+
+      <div class="messages">
+        <div class="messages-inner">
+
+          <div class="msg-row user">
+            <div class="bubble-user">Comment gérer l'objection sur le prix ?</div>
+          </div>
+
+          <div class="msg-row assistant">
+            <div class="assistant-wrap">
+              <div class="assistant-inner">
+                <div class="avatar">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7H3a7 7 0 0 1 7-7h1V5.73A2 2 0 0 1 10 4a2 2 0 0 1 2-2z"/>
+                    <path d="M5 14v7h14v-7"/><path d="M9 18v2"/><path d="M15 18v2"/>
+                    <circle cx="9" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="1" fill="currentColor" stroke="none"/>
+                  </svg>
+                </div>
+                <div class="bubble-assistant">
+                  <p>La meilleure approche est de recentrer la conversation sur la valeur plutôt que sur le prix affiché. Rappelez que le forfait Premium inclut une CSM dédiée et une facturation dégressive dès le second mois, deux éléments que Procertif ne propose pas à ce niveau de prix. Si le client compare uniquement les tarifs bruts, proposez un point en visio pour détailler le retour sur investissement.</p>
+
+                  <div class="draft-block">
+                    <div class="draft-head">
+                      <span class="draft-label">✨ Brouillon de réponse</span>
+                      <span class="copy-btn">Copier</span>
+                    </div>
+                    <p class="draft-text">Je comprends que le prix soit un point d'attention. Sur le papier, Procertif est effectivement moins cher — mais notre forfait Premium inclut une CSM dédiée et une facturation dégressive qui réduisent le coût réel dès le 2ᵉ mois. Je vous propose qu'on regarde ensemble le calcul sur votre volume actuel ?</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sources-row">
+                <span class="sources-eyebrow">Sources</span>
+                <div class="source-chip">
+                  <span class="source-type">Objection</span>
+                  <span>Réponse prix Premium</span>
+                  <span class="source-pct">91%</span>
+                </div>
+                <div class="source-chip">
+                  <span class="source-type">Cas client</span>
+                  <span>ROI formation continue</span>
+                  <span class="source-pct">78%</span>
+                </div>
+              </div>
+
+              <div class="copy-row">
+                <span class="copy-btn">Copier</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- État — chargement (exemple), chat-bubble état 1 : points animés avant le premier token -->
+          <div class="state-label">État — chargement (exemple)</div>
+          <div class="msg-row assistant">
+            <div class="assistant-wrap">
+              <div class="assistant-inner">
+                <div class="avatar">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7H3a7 7 0 0 1 7-7h1V5.73A2 2 0 0 1 10 4a2 2 0 0 1 2-2z"/>
+                    <path d="M5 14v7h14v-7"/><path d="M9 18v2"/><path d="M15 18v2"/>
+                    <circle cx="9" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="1" fill="currentColor" stroke="none"/>
+                  </svg>
+                </div>
+                <div class="bubble-assistant">
+                  <div class="dots">
+                    <span class="dot-anim"></span><span class="dot-anim"></span><span class="dot-anim"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="input-bar">
+        <div class="input-inner">
+          <div class="input-shell">
+            <input type="text" placeholder="Posez votre question… (Entrée ↵)" readonly>
+            <button class="send-btn" aria-label="Envoyer">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M14 8L2 2l2.5 6L2 14l12-6z" fill="currentColor"/></svg>
+            </button>
+          </div>
+          <p class="input-caption">Maj+Entrée pour sauter une ligne</p>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

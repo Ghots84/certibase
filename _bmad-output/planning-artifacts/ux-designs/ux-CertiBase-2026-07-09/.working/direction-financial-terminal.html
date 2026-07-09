@@ -1,0 +1,241 @@
+<!--
+  DIRECTION 1 — "Financial Terminal" (serious enterprise / data-of-record register)
+  Rationale: CertiBase's competitor data is business-critical intelligence, so this direction borrows
+  the visual grammar of institutional finance tools (Bloomberg-terminal / audit-ledger tables): hairline
+  borders instead of shadows, tabular monospace numerals, small-caps functional labels, and almost zero
+  ornament. Orange is rationed to exactly the signals that matter (our own row, alert deltas) so it reads
+  as urgent/precise rather than decorative. Dense, sharp-cornered, no motion flourish beyond a quiet row hover.
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>CertiBase — Espace concurrent — Direction Financial Terminal</title>
+<style>
+/*
+  HEX VALUES USED (brand-locked, unchanged):
+    --navy   #122E47   sidebar background
+    --orange #E8651E   primary accent / "our offer" / alert deltas
+    --bg     #F6F7F9   app background
+    --text   #15212E   primary text
+
+  Direction-specific additions (neutral scale only, no new brand hues):
+    --line   #D8DEE4   hairline borders
+    --line-strong #AEB8C2
+    --muted  #5B6B7A   secondary text
+    --navy-2 #0E243A   sidebar hover/active depth
+    --white  #FFFFFF
+    --mono-bg #FBFBFA  zebra row tint
+*/
+:root{
+  --navy:#122E47; --orange:#E8651E; --bg:#F6F7F9; --text:#15212E;
+  --line:#D8DEE4; --line-strong:#AEB8C2; --muted:#5B6B7A; --navy-2:#0E243A;
+  --white:#FFFFFF; --mono-bg:#FBFBFA;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+  background:#2b2b2b;
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;
+}
+.browser-chrome{
+  width:1400px;height:900px;background:var(--white);
+  border-radius:8px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);
+  display:flex;flex-direction:column;
+}
+.chrome-bar{
+  height:36px;background:#e2e2e2;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;
+}
+.dot{width:11px;height:11px;border-radius:50%;}
+.dot.r{background:#ff5f57;} .dot.y{background:#febc2e;} .dot.g{background:#28c840;}
+.url{margin-left:16px;background:#fff;border-radius:4px;padding:4px 12px;font-size:11px;color:#666;flex:1;max-width:320px;}
+.app{flex:1;display:flex;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{
+  width:220px;background:var(--navy);color:#C9D4DE;flex-shrink:0;
+  display:flex;flex-direction:column;padding:20px 0;
+}
+.brand{
+  font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--white);padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:12px;
+}
+.nav-item{
+  padding:10px 20px;font-size:13px;letter-spacing:.02em;cursor:default;
+  border-left:3px solid transparent;color:#9FB0C0;
+}
+.nav-item.active{
+  background:var(--navy-2);color:var(--white);border-left-color:var(--orange);font-weight:600;
+}
+.nav-item.admin{margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08);color:#7C8FA1;}
+
+/* MAIN */
+.main{flex:1;background:var(--bg);overflow:auto;padding:28px 32px;}
+.page-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;}
+h1{
+  font-family:Georgia,"Times New Roman",serif;font-size:22px;font-weight:700;color:var(--text);
+  letter-spacing:.01em;
+}
+.subtitle{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:20px;}
+.timestamp{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
+
+.layout{display:flex;gap:24px;align-items:flex-start;}
+.panel{background:var(--white);border:1px solid var(--line);}
+.panel-main{flex:1;}
+.panel-title{
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+  padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;
+}
+
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;}
+thead th{
+  text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+  font-weight:700;padding:9px 16px;border-bottom:1px solid var(--line-strong);background:var(--mono-bg);
+}
+tbody td{
+  padding:11px 16px;font-size:13px;color:var(--text);border-bottom:1px solid var(--line);vertical-align:top;
+}
+tbody tr:nth-child(even){background:var(--mono-bg);}
+tbody tr:hover{background:#FFF3EC;}
+tr.us td{background:#FFF8F4;border-left:3px solid var(--orange);font-weight:600;}
+tr.us td:first-child{padding-left:13px;}
+.badge-us{
+  display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--white);background:var(--orange);padding:2px 6px;margin-left:8px;
+}
+.price{font-family:Consolas,"Courier New",monospace;font-weight:700;font-size:13.5px;}
+.price.us{color:var(--orange);}
+.feat-list{font-size:12px;color:var(--muted);line-height:1.6;}
+.feat-list li{list-style:none;}
+.feat-list li::before{content:"— ";color:var(--line-strong);}
+.updated{font-size:11.5px;color:var(--muted);font-family:Consolas,monospace;}
+
+/* SIDEBAR ALERTS */
+.panel-side{width:340px;flex-shrink:0;}
+.alert{
+  padding:13px 16px;border-bottom:1px solid var(--line);display:flex;gap:10px;
+}
+.alert:hover{background:var(--mono-bg);}
+.alert-icon{font-size:15px;flex-shrink:0;width:20px;text-align:center;}
+.alert-body{flex:1;}
+.alert-title{font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.alert-detail{font-size:11.5px;color:var(--muted);}
+.delta{font-family:Consolas,monospace;font-weight:700;}
+.delta.down{color:#B23A1E;}
+.delta.up{color:var(--orange);}
+.alert-time{font-size:10px;color:var(--line-strong);font-family:Consolas,monospace;margin-top:3px;}
+
+/* STATE VARIANT: loading skeleton row (labelled) */
+.state-demo{margin-top:18px;}
+.state-label{
+  font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;
+  margin-bottom:6px;
+}
+.skeleton-row{display:flex;gap:10px;padding:11px 16px;border:1px dashed var(--line-strong);background:var(--mono-bg);}
+.sk{height:11px;background:linear-gradient(90deg,#E4E8EC 25%,#EFF1F3 37%,#E4E8EC 63%);border-radius:2px;}
+.sk.w1{width:18%;} .sk.w2{width:14%;} .sk.w3{width:12%;} .sk.w4{width:36%;} .sk.w5{width:14%;}
+</style>
+</head>
+<body>
+<div class="browser-chrome">
+  <div class="chrome-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span class="url">app.certibase.io/concurrents</span>
+  </div>
+  <div class="app">
+    <nav class="sidebar">
+      <div class="brand">CertiBase</div>
+      <div class="nav-item">Vue d'ensemble</div>
+      <div class="nav-item">Fiches</div>
+      <div class="nav-item active">Concurrents</div>
+      <div class="nav-item">Imports</div>
+      <div class="nav-item">Assistant</div>
+      <div class="nav-item admin">Utilisateurs</div>
+    </nav>
+    <main class="main">
+      <div class="page-head">
+        <h1>Espace concurrent</h1>
+        <span class="timestamp">Dernière synchronisation — 09/07/2026 08:14</span>
+      </div>
+      <div class="subtitle">Veille tarifaire &amp; fonctionnelle — 4 acteurs suivis</div>
+
+      <div class="layout">
+        <section class="panel panel-main">
+          <div class="panel-title">Grille tarifaire comparée <span>4 lignes</span></div>
+          <table>
+            <thead>
+              <tr><th>Concurrent</th><th>Offre</th><th>Prix</th><th>Fonctionnalités</th><th>Mise à jour</th></tr>
+            </thead>
+            <tbody>
+              <tr class="us">
+                <td>Nous <span class="badge-us">Notre offre</span></td>
+                <td>Premium</td>
+                <td class="price us">149 €</td>
+                <td><ul class="feat-list"><li>CSM dédiée</li><li>API incluse</li><li>Facturation dégressive</li></ul></td>
+                <td class="updated">09/07/2026</td>
+              </tr>
+              <tr>
+                <td>Procertif</td>
+                <td>Impact</td>
+                <td class="price">100 €</td>
+                <td><ul class="feat-list"><li>Accès cours</li><li>Certificat</li><li>Support email</li></ul></td>
+                <td class="updated">08/07/2026</td>
+              </tr>
+              <tr>
+                <td>Digiforma</td>
+                <td>Basic</td>
+                <td class="price">45 €</td>
+                <td><ul class="feat-list"><li>Accès cours</li><li>Certificat</li></ul></td>
+                <td class="updated">05/07/2026</td>
+              </tr>
+              <tr>
+                <td>DigiformaCertif</td>
+                <td>Standard</td>
+                <td class="price">79 €</td>
+                <td><ul class="feat-list"><li>Accès cours</li><li>Certificat</li><li>Signature électronique</li></ul></td>
+                <td class="updated">03/07/2026</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="state-demo" style="padding:0 16px 16px;">
+            <div class="state-label">État — ligne en cours de rafraîchissement (skeleton)</div>
+            <div class="skeleton-row">
+              <div class="sk w1"></div><div class="sk w2"></div><div class="sk w3"></div><div class="sk w4"></div><div class="sk w5"></div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel panel-side">
+          <div class="panel-title">Journal d'alertes <span>3 récentes</span></div>
+          <div class="alert">
+            <div class="alert-icon">📉</div>
+            <div class="alert-body">
+              <div class="alert-title">Alerte prix — Procertif — Impact</div>
+              <div class="alert-detail">110 € → 100 € — <span class="delta down">baisse -9.1%</span></div>
+              <div class="alert-time">09/07/2026 · 08:02</div>
+            </div>
+          </div>
+          <div class="alert">
+            <div class="alert-icon">🧩</div>
+            <div class="alert-body">
+              <div class="alert-title">Alerte fonctionnalités — Digiforma — Basic</div>
+              <div class="alert-detail">Ajout : Signature électronique</div>
+              <div class="alert-time">07/07/2026 · 17:40</div>
+            </div>
+          </div>
+          <div class="alert">
+            <div class="alert-icon">📈</div>
+            <div class="alert-body">
+              <div class="alert-title">Alerte prix — DigiformaCertif — Standard</div>
+              <div class="alert-detail">75 € → 79 € — <span class="delta up">hausse +5.3%</span></div>
+              <div class="alert-time">03/07/2026 · 09:15</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

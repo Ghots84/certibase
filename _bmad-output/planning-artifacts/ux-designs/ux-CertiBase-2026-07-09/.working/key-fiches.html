@@ -1,0 +1,385 @@
+<!--
+  KEY SCREEN — Fiches (filtered grid + detail drawer)
+  Governed by:
+    DESIGN.md → components.fiche-card (4-line anatomy: type-badge+status-badge / title / hint / id+confidence-bar),
+                components.type-badge (per-type palette), components.status-badge (dot+label, never color-only),
+                components.confidence-bar (threshold-coded 85/70), components.drawer (392px, sticky, cbslide),
+                components.button-secondary / button-primary (footer actions), Shapes (rounded.full badges only
+                on state/category, rounded.lg drawer + fiche-card)
+    EXPERIENCE.md → Component Patterns row "fiche-card" (click/Enter/Space toggles drawer, grid narrows
+                270px→240px when drawer open) and "fiche-drawer" (slide-in from right, sticky, footer conditional
+                on role+status: Dupliquer always, Archiver admin-only, Modifier if published+admin),
+                State Patterns (draft vs published), Accessibility Floor (double encoding of status)
+  Visual register matched to .working/direction-modern-saas.html (soft elevation, generous radius, pill badges).
+  Real content sourced from app/(dashboard)/fiches/page.tsx (TYPE_META, status labels, drawer anatomy,
+  SOURCE_LABEL/SOURCE_ICON, "Exposée aux agents" section, footer button logic).
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>CertiBase — Fiches — Key Screen</title>
+<style>
+:root{
+  --bg:#F6F7F9; --surface:#FFFFFF; --surface-2:#F1F3F6; --surface-hover:#F6F8FB;
+  --text:#15212E; --text-muted:#5B6675; --text-faint:#8A94A2;
+  --border:#E3E7EC; --border-strong:#D2D8E0;
+
+  --sidebar-bg:#122E47; --sidebar-bg-hover:#16385A; --sidebar-text:#E7EDF4;
+  --sidebar-muted:#8AA0B5; --sidebar-active-bg:rgba(232,101,30,.16);
+  --sidebar-active-text:#FFFFFF; --sidebar-active-bar:#E8651E; --sidebar-border:rgba(255,255,255,.08);
+
+  --primary:#E8651E; --primary-hover:#D2570F; --primary-text:#FFFFFF;
+  --primary-soft:#FCEDE3; --primary-soft-text:#B14E10; --primary-gradient-end:#FF8A4C;
+
+  --accent:#1E5B9E; --accent-soft:#E8F0F8; --accent-soft-text:#1E5B9E;
+
+  --success:#1F8A5B; --success-soft:#E3F3EB;
+  --warning:#B8770C; --warning-soft:#FBF0DA;
+  --danger:#C0392B; --danger-soft:#F8E4E1;
+
+  --r-sm:6px; --r:8px; --r-md:10px; --r-lg:12px; --r-xl:16px; --r-2xl:20px; --r-full:9999px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:"Public Sans","Segoe UI",-apple-system,BlinkMacSystemFont,system-ui,Roboto,Arial,sans-serif;
+  background:#2b2b2b;display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.browser-chrome{
+  width:1400px;height:900px;background:var(--surface);border-radius:14px;overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.5);display:flex;flex-direction:column;
+}
+.chrome-bar{height:36px;background:#efefef;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;}
+.dot{width:11px;height:11px;border-radius:50%;}
+.dot.r{background:#ff5f57;} .dot.y{background:#febc2e;} .dot.g{background:#28c840;}
+.url{margin-left:16px;background:#fff;border-radius:20px;padding:4px 14px;font-size:11px;color:#777;flex:1;max-width:320px;border:1px solid #e2e2e2;}
+.app{flex:1;display:flex;overflow:hidden;}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+.sidebar{
+  width:248px;flex-shrink:0;background:var(--sidebar-bg);border-right:1px solid var(--sidebar-border);
+  padding:18px 12px;display:flex;flex-direction:column;gap:2px;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px;margin-bottom:20px;}
+.brand-mark{
+  width:34px;height:34px;border-radius:var(--r-md);background:var(--primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;letter-spacing:-.02em;flex-shrink:0;
+}
+.brand-name{font-size:14.5px;font-weight:800;color:var(--sidebar-text);}
+.brand-sub{font-size:10.5px;color:var(--sidebar-muted);margin-top:1px;}
+.nav-section-label{
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sidebar-muted);
+  padding:0 8px;margin:4px 0 6px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 11px 9px 8px;margin-bottom:2px;
+  border-left:3px solid transparent;border-radius:var(--r-md);
+  color:var(--sidebar-muted);font-size:13.5px;font-weight:500;text-decoration:none;
+}
+.nav-item .ic{width:16px;text-align:center;font-size:14px;flex-shrink:0;}
+.nav-item:hover{background:rgba(255,255,255,.07);color:var(--sidebar-text);}
+.nav-item.active{background:var(--sidebar-active-bg);color:var(--sidebar-active-text);font-weight:600;border-left-color:var(--sidebar-active-bar);}
+.nav-badge{
+  margin-left:auto;font-size:10.5px;font-weight:700;color:var(--sidebar-muted);
+  background:rgba(255,255,255,.08);padding:1px 7px;border-radius:var(--r-full);
+}
+.nav-item.active .nav-badge{color:rgba(255,255,255,.75);background:rgba(255,255,255,.16);}
+.nav-item.admin{margin-top:10px;color:#8FA0B0;}
+
+/* ── Main ────────────────────────────────────────────────────────────── */
+.main{flex:1;background:var(--bg);overflow:auto;padding:24px 28px;}
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;}
+h1{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.01em;line-height:1.25;}
+.subtitle{font-size:12.5px;color:var(--text-muted);margin-top:4px;}
+.btn-cta{
+  padding:8px 18px;border-radius:var(--r-full);background:var(--primary);color:#fff;border:none;
+  font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:6px;
+}
+
+.search-bar{
+  position:relative;margin-bottom:18px;max-width:480px;
+}
+.search-bar input{
+  width:100%;padding:9px 14px 9px 38px;border-radius:var(--r);border:1px solid var(--border);
+  background:var(--surface);color:var(--text);font-size:13.5px;outline:none;
+}
+.search-bar .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-faint);font-size:14px;}
+
+.layout{display:flex;gap:16px;align-items:flex-start;}
+.main-col{flex:1;min-width:0;}
+
+/* ── fiche-card ──────────────────────────────────────────────────────── */
+.fiche-grid{
+  display:grid;grid-template-columns:repeat(auto-fill, minmax(240px,1fr));gap:14px;
+}
+.fiche-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:12px 14px;display:flex;flex-direction:column;gap:7px;
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.fiche-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.10);}
+.fiche-card.active{border:1.5px solid var(--primary);box-shadow:0 0 0 1px var(--primary);}
+.fiche-card.active:hover{transform:none;}
+.fc-row1{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.type-badge{padding:2px 8px;border-radius:var(--r-full);font-size:11px;font-weight:600;flex-shrink:0;}
+.type-badge.objection{background:var(--danger-soft);color:var(--danger);}
+.type-badge.guide_situation{background:var(--warning-soft);color:var(--warning);}
+.type-badge.cas_client{background:var(--success-soft);color:var(--success);}
+.type-badge.concurrent{background:var(--accent-soft);color:var(--accent);}
+.type-badge.doc_certiplace{background:var(--primary-soft);color:var(--primary);}
+.type-badge.veille{background:var(--surface-2);color:var(--text-muted);}
+.status-badge{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
+.status-label{font-size:11px;font-weight:500;}
+.status-badge.published .status-dot{background:var(--success);}
+.status-badge.published .status-label{color:var(--success);}
+.status-badge.draft .status-dot{background:var(--warning);}
+.status-badge.draft .status-label{color:var(--warning);}
+.fc-title{
+  font-size:13.5px;font-weight:600;color:var(--text);line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.fc-hint{
+  font-size:12px;color:var(--text-faint);line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;
+}
+.fc-row4{display:flex;align-items:center;justify-content:space-between;margin-top:2px;}
+.mono{font-variant-numeric:tabular-nums;font-weight:600;}
+.fc-id{font-size:10px;color:var(--text-faint);}
+.confidence{display:flex;align-items:center;gap:7px;}
+.conf-track{width:46px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;flex-shrink:0;}
+.conf-fill{height:100%;border-radius:2px;}
+.conf-fill.high{background:var(--success);}
+.conf-fill.mid{background:var(--warning);}
+.conf-fill.low{background:var(--danger);}
+.conf-value{font-size:11px;font-weight:600;min-width:28px;}
+.conf-value.high{color:var(--success);}
+.conf-value.mid{color:var(--warning);}
+.conf-value.low{color:var(--danger);}
+
+/* ── drawer ──────────────────────────────────────────────────────────── */
+@keyframes cbslide{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:translateX(0);}}
+.drawer{
+  width:392px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  display:flex;flex-direction:column;overflow:hidden;max-height:calc(100vh - 200px);
+  position:sticky;top:16px;animation:cbslide .28s ease;
+}
+.drawer-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:4px;}
+.drawer-head-row{display:flex;align-items:center;justify-content:space-between;}
+.drawer-close{color:var(--text-faint);font-size:16px;background:none;border:none;line-height:1;}
+.drawer-title{font-size:19px;font-weight:700;color:var(--text);line-height:1.3;}
+.drawer-badges{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.drawer-conf{display:flex;align-items:center;gap:6px;margin-left:auto;}
+.drawer-conf .conf-track{width:52px;}
+.drawer-body{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:16px;}
+.field-eyebrow{font-size:11px;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.md p{color:var(--text);font-size:13.5px;line-height:1.65;margin:0 0 8px;}
+.md h2{font-size:14px;font-weight:700;color:var(--text);margin:10px 0 4px;}
+.md h2:first-child{margin-top:0;}
+.md ul{list-style:none;display:flex;flex-direction:column;gap:5px;margin:2px 0 8px;}
+.md li{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;color:var(--text-muted);line-height:1.55;}
+.md li::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--primary);margin-top:7px;flex-shrink:0;}
+.source-row{display:flex;align-items:center;gap:6px;}
+.chip{
+  display:inline-block;padding:3px 10px;background:var(--surface-2);border-radius:var(--r-full);
+  color:var(--text-muted);font-size:12.5px;
+}
+.agent-pill{
+  padding:3px 10px;border-radius:var(--r-full);background:var(--primary-soft);color:var(--primary);
+  font-size:12px;font-weight:600;
+}
+.drawer-footer{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;}
+.btn-sec{
+  flex:1;padding:8px 0;border-radius:var(--r);border:1px solid var(--border);background:var(--surface-2);
+  color:var(--text-muted);font-size:13px;font-weight:500;text-align:center;
+}
+.btn-sec.danger-hover{color:var(--danger);}
+.btn-pri{
+  flex:1;padding:8px 0;border-radius:var(--r);border:none;background:var(--primary);color:#fff;
+  font-size:13px;font-weight:600;text-align:center;
+}
+</style>
+</head>
+<body>
+<div class="browser-chrome">
+  <div class="chrome-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span class="url">app.certibase.io/fiches</span>
+  </div>
+  <div class="app">
+    <nav class="sidebar">
+      <div class="brand"><div class="brand-mark">CB</div><div><div class="brand-name">CertiBase</div><div class="brand-sub">Console interne</div></div></div>
+      <div class="nav-section-label">Navigation</div>
+      <a class="nav-item"><span class="ic">▦</span>Vue d'ensemble</a>
+      <a class="nav-item active"><span class="ic">▤</span>Fiches<span class="nav-badge">8</span></a>
+      <a class="nav-item"><span class="ic">▲</span>Concurrents</a>
+      <a class="nav-item"><span class="ic">⇩</span>Imports<span class="nav-badge">4</span></a>
+      <a class="nav-item"><span class="ic">◔</span>Assistant</a>
+      <div class="nav-section-label admin" style="border-top:1px solid var(--sidebar-border);padding-top:12px;margin-top:8px;">Admin</div>
+      <a class="nav-item admin"><span class="ic">◎</span>Utilisateurs</a>
+    </nav>
+    <main class="main">
+      <div class="page-head">
+        <div>
+          <h1>Fiches de connaissance</h1>
+          <div class="subtitle">6 fiches · 1 à valider</div>
+        </div>
+        <button class="btn-cta"><span style="font-size:16px;line-height:1;">+</span>Nouvelle fiche</button>
+      </div>
+
+      <div class="search-bar">
+        <span class="ic">🔍</span>
+        <input type="text" placeholder="Rechercher dans toutes les fiches..." value="" readonly>
+      </div>
+
+      <div class="layout">
+        <div class="main-col">
+          <div class="fiche-grid">
+
+            <div class="fiche-card">
+              <div class="fc-row1">
+                <span class="type-badge objection">Objection</span>
+                <span class="status-badge published"><span class="status-dot"></span><span class="status-label">Validée</span></span>
+              </div>
+              <p class="fc-title">Objection sur le prix Premium</p>
+              <p class="fc-hint">Le client compare notre tarif brut à des offres d'entrée de gamme sans...</p>
+              <div class="fc-row4">
+                <span class="fc-id mono">#7f2a91c4</span>
+                <div class="confidence"><div class="conf-track"><div class="conf-fill high" style="width:91%"></div></div><span class="conf-value high mono">91%</span></div>
+              </div>
+            </div>
+
+            <div class="fiche-card">
+              <div class="fc-row1">
+                <span class="type-badge cas_client">Cas client</span>
+                <span class="status-badge published"><span class="status-dot"></span><span class="status-label">Validée</span></span>
+              </div>
+              <p class="fc-title">Certification RNCP en 3 semaines — cas Acadomia</p>
+              <p class="fc-hint">Acadomia a déployé la certification sur 40 formateurs en un temps record...</p>
+              <div class="fc-row4">
+                <span class="fc-id mono">#3d81be07</span>
+                <div class="confidence"><div class="conf-track"><div class="conf-fill high" style="width:88%"></div></div><span class="conf-value high mono">88%</span></div>
+              </div>
+            </div>
+
+            <div class="fiche-card active">
+              <div class="fc-row1">
+                <span class="type-badge concurrent">Concurrent</span>
+                <span class="status-badge published"><span class="status-dot"></span><span class="status-label">Validée</span></span>
+              </div>
+              <p class="fc-title">Procertif — Impact</p>
+              <p class="fc-hint">Offre concurrente positionnée sur le même segment, prix révisé à la baisse...</p>
+              <div class="fc-row4">
+                <span class="fc-id mono">#a9c04e21</span>
+                <div class="confidence"><div class="conf-track"><div class="conf-fill high" style="width:94%"></div></div><span class="conf-value high mono">94%</span></div>
+              </div>
+            </div>
+
+            <div class="fiche-card">
+              <div class="fc-row1">
+                <span class="type-badge guide_situation">Guide situation</span>
+                <span class="status-badge published"><span class="status-dot"></span><span class="status-label">Validée</span></span>
+              </div>
+              <p class="fc-title">Configurer l'espace candidat</p>
+              <p class="fc-hint">Étapes pour activer l'espace candidat et paramétrer les accès formateurs...</p>
+              <div class="fc-row4">
+                <span class="fc-id mono">#e15f7a38</span>
+                <div class="confidence"><div class="conf-track"><div class="conf-fill mid" style="width:82%"></div></div><span class="conf-value mid mono">82%</span></div>
+              </div>
+            </div>
+
+            <div class="fiche-card">
+              <div class="fc-row1">
+                <span class="type-badge doc_certiplace">CertiPlace</span>
+                <span class="status-badge published"><span class="status-dot"></span><span class="status-label">Validée</span></span>
+              </div>
+              <p class="fc-title">Processus de facturation dégressive</p>
+              <p class="fc-hint">Le taux dégresse automatiquement à partir du second mois selon le volume...</p>
+              <div class="fc-row4">
+                <span class="fc-id mono">#0c6d33f9</span>
+                <div class="confidence"><div class="conf-track"><div class="conf-fill mid" style="width:76%"></div></div><span class="conf-value mid mono">76%</span></div>
+              </div>
+            </div>
+
+            <div class="fiche-card">
+              <div class="fc-row1">
+                <span class="type-badge veille">Veille</span>
+                <span class="status-badge draft"><span class="status-dot"></span><span class="status-label">À valider</span></span>
+              </div>
+              <p class="fc-title">Digiforma annonce un module de signature électronique</p>
+              <p class="fc-hint">Extraction automatique depuis la veille concurrentielle, à relire avant...</p>
+              <div class="fc-row4">
+                <span class="fc-id mono">#5b2e88ad</span>
+                <div class="confidence"><div class="conf-track"><div class="conf-fill low" style="width:64%"></div></div><span class="conf-value low mono">64%</span></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Drawer — état déplié, détail de "Procertif — Impact" -->
+        <aside class="drawer">
+          <div class="drawer-head">
+            <div class="drawer-head-row">
+              <span class="fc-id mono">#a9c04e21</span>
+              <button class="drawer-close" aria-label="Fermer">✕</button>
+            </div>
+            <p class="drawer-title">Procertif — Impact</p>
+          </div>
+
+          <div class="drawer-badges">
+            <span class="status-badge published"><span class="status-dot"></span><span class="status-label">Validée</span></span>
+            <span class="type-badge concurrent" style="font-size:11.5px;">Concurrent</span>
+            <div class="drawer-conf">
+              <div class="conf-track"><div class="conf-fill high" style="width:94%"></div></div>
+              <span class="conf-value high mono">94%</span>
+            </div>
+          </div>
+
+          <div class="drawer-body">
+            <div class="md">
+              <h2>Positionnement</h2>
+              <p>Procertif cible le même segment que notre offre Premium mais avec un accompagnement plus léger — pas de CSM dédiée, support par email uniquement.</p>
+              <h2>Prix</h2>
+              <ul>
+                <li>Offre Impact : 100 € (baisse de 110 € au 08/07/2026, -9,1 %)</li>
+                <li>Aucune facturation dégressive proposée</li>
+                <li>Certificat inclus, accès cours standard</li>
+              </ul>
+              <h2>Angle de réponse</h2>
+              <p>Mettre en avant la CSM dédiée et la facturation dégressive dès le 2ᵉ mois, deux éléments absents chez Procertif à ce niveau de prix.</p>
+            </div>
+
+            <div>
+              <div class="field-eyebrow">Source</div>
+              <div class="source-row">
+                <span>🤖</span>
+                <span style="color:var(--text-muted);font-size:13px;">Veille auto <span style="color:var(--text-faint);">· 09 juil. 2026</span></span>
+              </div>
+            </div>
+
+            <div>
+              <div class="field-eyebrow">Profil cible</div>
+              <span class="chip">CSM + Sales</span>
+            </div>
+
+            <div>
+              <div class="field-eyebrow">Exposée aux agents</div>
+              <div style="display:flex;gap:6px;">
+                <span class="agent-pill">CSM Digital</span>
+                <span class="agent-pill">Sales Digital</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="drawer-footer">
+            <span class="btn-sec">Dupliquer</span>
+            <span class="btn-sec danger-hover">Archiver</span>
+            <span class="btn-pri">Modifier</span>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

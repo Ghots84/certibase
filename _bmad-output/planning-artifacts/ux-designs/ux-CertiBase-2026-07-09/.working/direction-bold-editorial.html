@@ -1,0 +1,211 @@
+<!--
+  DIRECTION 3 — "Bold Editorial" (confident, magazine-style register)
+  Rationale: treats the competitor page like a market-report front page rather than a utility screen —
+  oversized display numerals for prices, an asymmetric hero vs. index layout, heavy rules, and orange used
+  as a dominant editorial color-block rather than a small accent. "Notre offre" is the headline story; the
+  three competitors are relegated to a compact ranked index below it. Alerts read like a live news ticker.
+  This is the most opinionated/brand-forward of the four directions.
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>CertiBase — Espace concurrent — Direction Bold Editorial</title>
+<style>
+/*
+  HEX VALUES USED (brand-locked, unchanged):
+    --navy   #122E47   sidebar background + editorial rules
+    --orange #E8651E   dominant color block (hero band), headline accent
+    --bg     #F6F7F9   app background
+    --text   #15212E   primary text / headline color
+
+  Direction-specific additions:
+    --cream   #FFF9F4   hero band tint area
+    --ink     #0B1620   deep rule/border color
+    --muted   #62707E   secondary text
+    --white   #FFFFFF
+    --hairline #D4D0C8  warm hairline for editorial rules
+*/
+:root{
+  --navy:#122E47; --orange:#E8651E; --bg:#F6F7F9; --text:#15212E;
+  --cream:#FFF9F4; --ink:#0B1620; --muted:#62707E; --white:#FFFFFF; --hairline:#D4D0C8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:Georgia,"Times New Roman",serif;
+  background:#2b2b2b;display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.browser-chrome{
+  width:1400px;height:900px;background:var(--white);overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.5);display:flex;flex-direction:column;
+}
+.chrome-bar{height:34px;background:#e6e6e6;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;font-family:Arial,sans-serif;}
+.dot{width:11px;height:11px;border-radius:50%;}
+.dot.r{background:#ff5f57;} .dot.y{background:#febc2e;} .dot.g{background:#28c840;}
+.url{margin-left:16px;background:#fff;padding:4px 12px;font-size:11px;color:#666;flex:1;max-width:320px;}
+.app{flex:1;display:flex;overflow:hidden;}
+
+.sidebar{width:210px;background:var(--navy);flex-shrink:0;padding:24px 0;font-family:Arial,sans-serif;}
+.brand{
+  font-family:Georgia,serif;font-size:19px;font-weight:700;color:#fff;padding:0 22px 22px;
+  border-bottom:2px solid var(--orange);margin-bottom:14px;letter-spacing:.01em;
+}
+.nav-item{padding:11px 22px;font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;color:#8FA0B0;font-weight:600;}
+.nav-item.active{color:#fff;background:rgba(232,101,30,.16);border-left:4px solid var(--orange);padding-left:18px;}
+.nav-item.admin{margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.1);}
+
+.main{flex:1;background:var(--bg);overflow:auto;}
+.masthead{
+  padding:26px 40px 18px;border-bottom:3px solid var(--ink);display:flex;justify-content:space-between;align-items:flex-end;
+}
+.masthead h1{font-size:34px;font-weight:700;color:var(--text);letter-spacing:-.01em;}
+.masthead .kicker{font-family:Arial,sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--orange);font-weight:700;margin-bottom:6px;}
+.masthead .issue{font-family:Arial,sans-serif;font-size:11px;color:var(--muted);text-align:right;}
+
+.layout{display:flex;gap:0;}
+.main-col{flex:1;padding:26px 40px;border-right:1px solid var(--hairline);}
+
+/* HERO STORY = our offer */
+.hero-band{
+  background:linear-gradient(135deg,var(--orange),#c8501a);color:#fff;padding:26px 30px;margin-bottom:26px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.hero-eyebrow{font-family:Arial,sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;opacity:.9;margin-bottom:6px;}
+.hero-name{font-size:28px;font-weight:700;}
+.hero-offer{font-family:Arial,sans-serif;font-size:13px;opacity:.9;margin-top:4px;}
+.hero-price{font-size:56px;font-weight:700;line-height:1;text-align:right;}
+.hero-price small{font-size:16px;font-weight:400;display:block;font-family:Arial,sans-serif;opacity:.85;margin-top:4px;}
+.hero-feats{
+  font-family:Arial,sans-serif;font-size:12px;padding:0 30px 22px;color:var(--text);display:flex;gap:18px;
+  border-bottom:1px solid var(--hairline);margin-bottom:22px;flex-wrap:wrap;
+}
+.hero-feats span::before{content:"◆ ";color:var(--orange);}
+
+.index-title{
+  font-family:Arial,sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  font-weight:700;margin-bottom:12px;
+}
+.index-row{
+  display:grid;grid-template-columns:28px 1fr 110px 110px auto;align-items:baseline;gap:14px;
+  padding:14px 0;border-bottom:1px solid var(--hairline);font-family:Arial,sans-serif;
+}
+.index-rank{font-family:Georgia,serif;font-size:16px;color:var(--hairline);font-weight:700;}
+.index-name{font-size:15px;font-weight:700;color:var(--text);}
+.index-offer{font-size:11px;color:var(--muted);}
+.index-price{font-family:Georgia,serif;font-size:20px;font-weight:700;color:var(--text);}
+.index-feats{font-size:11px;color:var(--muted);}
+.index-updated{font-size:10px;color:#9AA5AE;text-align:right;}
+.index-row:hover{background:var(--cream);}
+
+/* SIDEBAR — news ticker style alerts */
+.side-col{width:340px;flex-shrink:0;padding:26px 30px;background:var(--cream);}
+.ticker-title{
+  font-family:Arial,sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);
+  font-weight:700;border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:4px;
+}
+.ticker-item{padding:16px 0;border-bottom:1px solid var(--hairline);}
+.ticker-flag{
+  font-family:Arial,sans-serif;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:5px;margin-bottom:6px;
+}
+.ticker-flag.down{color:#B23A1E;} .ticker-flag.up{color:var(--orange);} .ticker-flag.feat{color:var(--navy);}
+.ticker-headline{font-size:15px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:4px;}
+.ticker-detail{font-family:Arial,sans-serif;font-size:11.5px;color:var(--muted);}
+.ticker-time{font-family:Arial,sans-serif;font-size:10px;color:#9AA5AE;margin-top:5px;}
+
+/* STATE VARIANT: hover/active row shown distinctly (labelled) */
+.state-label{font-family:Arial,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;margin:18px 0 8px;}
+.index-row.demo-hover{background:var(--cream);border-left:3px solid var(--orange);padding-left:8px;}
+</style>
+</head>
+<body>
+<div class="browser-chrome">
+  <div class="chrome-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span class="url">app.certibase.io/concurrents</span>
+  </div>
+  <div class="app">
+    <nav class="sidebar">
+      <div class="brand">CertiBase</div>
+      <div class="nav-item">Vue d'ensemble</div>
+      <div class="nav-item">Fiches</div>
+      <div class="nav-item active">Concurrents</div>
+      <div class="nav-item">Imports</div>
+      <div class="nav-item">Assistant</div>
+      <div class="nav-item admin">Utilisateurs</div>
+    </nav>
+    <main class="main">
+      <div class="masthead">
+        <div>
+          <div class="kicker">Édition marché</div>
+          <h1>Espace concurrent</h1>
+        </div>
+        <div class="issue">09 juillet 2026<br>Certification professionnelle — France</div>
+      </div>
+
+      <div class="layout">
+        <div class="main-col">
+          <div class="hero-band">
+            <div>
+              <div class="hero-eyebrow">À la une · Notre offre</div>
+              <div class="hero-name">Nous</div>
+              <div class="hero-offer">Premium</div>
+            </div>
+            <div class="hero-price">149 €<small>par mois</small></div>
+          </div>
+          <div class="hero-feats">
+            <span>CSM dédiée</span><span>API incluse</span><span>Facturation dégressive</span>
+          </div>
+
+          <div class="index-title">Index des offres concurrentes</div>
+          <div class="index-row">
+            <div class="index-rank">01</div>
+            <div><div class="index-name">Procertif</div><div class="index-offer">Impact</div></div>
+            <div class="index-price">100 €</div>
+            <div class="index-feats">Accès cours, Certificat, Support email</div>
+            <div class="index-updated">08/07/2026</div>
+          </div>
+          <div class="index-row demo-hover">
+            <div class="index-rank">02</div>
+            <div><div class="index-name">DigiformaCertif</div><div class="index-offer">Standard</div></div>
+            <div class="index-price">79 €</div>
+            <div class="index-feats">Accès cours, Certificat, Signature électronique</div>
+            <div class="index-updated">03/07/2026</div>
+          </div>
+          <div class="index-row">
+            <div class="index-rank">03</div>
+            <div><div class="index-name">Digiforma</div><div class="index-offer">Basic</div></div>
+            <div class="index-price">45 €</div>
+            <div class="index-feats">Accès cours, Certificat</div>
+            <div class="index-updated">05/07/2026</div>
+          </div>
+
+          <div class="state-label">État — ligne 02 en survol (hover), mise en avant à gauche</div>
+        </div>
+
+        <aside class="side-col">
+          <div class="ticker-title">Dernière minute</div>
+          <div class="ticker-item">
+            <div class="ticker-flag down">📉 Baisse de prix</div>
+            <div class="ticker-headline">Procertif casse le prix de son offre Impact</div>
+            <div class="ticker-detail">110 € → 100 € (-9.1%)</div>
+            <div class="ticker-time">Il y a 3 heures</div>
+          </div>
+          <div class="ticker-item">
+            <div class="ticker-flag feat">🧩 Nouveauté produit</div>
+            <div class="ticker-headline">Digiforma ajoute la signature électronique à Basic</div>
+            <div class="ticker-detail">Fonctionnalité ajoutée à l'offre Basic</div>
+            <div class="ticker-time">Il y a 2 jours</div>
+          </div>
+          <div class="ticker-item">
+            <div class="ticker-flag up">📈 Hausse de prix</div>
+            <div class="ticker-headline">DigiformaCertif relève le tarif de Standard</div>
+            <div class="ticker-detail">75 € → 79 € (+5.3%)</div>
+            <div class="ticker-time">Il y a 6 jours</div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

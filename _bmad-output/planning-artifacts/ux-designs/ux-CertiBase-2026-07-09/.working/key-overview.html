@@ -1,0 +1,260 @@
+<!--
+  KEY SCREEN — Vue d'ensemble
+  Governed by:
+    DESIGN.md → components.sidebar-nav, components.stat-card, components.shortcut-card,
+                Typography (heading-lg page title, display stat values), Elevation (repos / survol),
+                Shapes (rounded.xl on cards), Colors (success/warning/accent used semantically on stat values)
+    EXPERIENCE.md → Information Architecture ("Vue d'ensemble" row), Component Patterns (sidebar-nav item
+                active rule), Interaction Primitives (Survol → lift + shadow, never the only affordance)
+  Visual register matched to .working/direction-modern-saas.html (soft elevation, generous radius,
+  confident orange, no borders on card surfaces).
+  Real content sourced from app/(dashboard)/page.tsx (STAT_CARDS, SHORTCUTS, Principe directeur copy)
+  and components/sidebar.tsx (nav labels, badges).
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>CertiBase — Vue d'ensemble — Key Screen</title>
+<style>
+:root{
+  --bg:#F6F7F9; --surface:#FFFFFF; --surface-2:#F1F3F6; --surface-hover:#F6F8FB;
+  --text:#15212E; --text-muted:#5B6675; --text-faint:#8A94A2;
+  --border:#E3E7EC; --border-strong:#D2D8E0;
+
+  --sidebar-bg:#122E47; --sidebar-bg-hover:#16385A; --sidebar-text:#E7EDF4;
+  --sidebar-muted:#8AA0B5; --sidebar-active-bg:rgba(232,101,30,.16);
+  --sidebar-active-text:#FFFFFF; --sidebar-active-bar:#E8651E; --sidebar-border:rgba(255,255,255,.08);
+
+  --primary:#E8651E; --primary-hover:#D2570F; --primary-text:#FFFFFF;
+  --primary-soft:#FCEDE3; --primary-soft-text:#B14E10; --primary-gradient-end:#FF8A4C;
+
+  --accent:#1E5B9E; --accent-soft:#E8F0F8; --accent-soft-text:#1E5B9E;
+
+  --success:#1F8A5B; --success-soft:#E3F3EB;
+  --warning:#B8770C; --warning-soft:#FBF0DA;
+  --danger:#C0392B; --danger-soft:#F8E4E1;
+
+  --r-sm:6px; --r:8px; --r-md:10px; --r-lg:12px; --r-xl:16px; --r-2xl:20px; --r-full:9999px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:"Public Sans","Segoe UI",-apple-system,BlinkMacSystemFont,system-ui,Roboto,Arial,sans-serif;
+  background:#2b2b2b;display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.browser-chrome{
+  width:1400px;height:900px;background:var(--surface);border-radius:14px;overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.5);display:flex;flex-direction:column;
+}
+.chrome-bar{height:36px;background:#efefef;display:flex;align-items:center;gap:6px;padding:0 12px;flex-shrink:0;}
+.dot{width:11px;height:11px;border-radius:50%;}
+.dot.r{background:#ff5f57;} .dot.y{background:#febc2e;} .dot.g{background:#28c840;}
+.url{margin-left:16px;background:#fff;border-radius:20px;padding:4px 14px;font-size:11px;color:#777;flex:1;max-width:320px;border:1px solid #e2e2e2;}
+.app{flex:1;display:flex;overflow:hidden;}
+
+/* ── Sidebar (components.sidebar-nav) ───────────────────────────────── */
+.sidebar{
+  width:248px;flex-shrink:0;background:var(--sidebar-bg);border-right:1px solid var(--sidebar-border);
+  padding:18px 12px;display:flex;flex-direction:column;gap:2px;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:0 6px;margin-bottom:20px;}
+.brand-mark{
+  width:34px;height:34px;border-radius:var(--r-md);background:var(--primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;letter-spacing:-.02em;flex-shrink:0;
+}
+.brand-name{font-size:14.5px;font-weight:800;color:var(--sidebar-text);}
+.brand-sub{font-size:10.5px;color:var(--sidebar-muted);margin-top:1px;}
+.nav-section-label{
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sidebar-muted);
+  padding:0 8px;margin:4px 0 6px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 11px 9px 8px;margin-bottom:2px;
+  border-left:3px solid transparent;border-radius:var(--r-md);
+  color:var(--sidebar-muted);font-size:13.5px;font-weight:500;text-decoration:none;
+}
+.nav-item .ic{width:16px;text-align:center;font-size:14px;flex-shrink:0;}
+.nav-item:hover{background:rgba(255,255,255,.07);color:var(--sidebar-text);}
+.nav-item.active{background:var(--sidebar-active-bg);color:var(--sidebar-active-text);font-weight:600;border-left-color:var(--sidebar-active-bar);}
+.nav-badge{
+  margin-left:auto;font-size:10.5px;font-weight:700;color:var(--sidebar-muted);
+  background:rgba(255,255,255,.08);padding:1px 7px;border-radius:var(--r-full);
+}
+.nav-item.active .nav-badge{color:rgba(255,255,255,.75);background:rgba(255,255,255,.16);}
+.nav-item.admin{margin-top:10px;color:#8FA0B0;}
+
+/* ── Main ────────────────────────────────────────────────────────────── */
+.main{flex:1;background:var(--bg);overflow:auto;}
+.page-header{padding:20px 28px;border-bottom:1px solid var(--border);background:var(--surface);}
+h1{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.01em;line-height:1.25;}
+.subtitle{font-size:12.5px;color:var(--text-muted);margin-top:4px;}
+.content{padding:24px 28px;display:flex;flex-direction:column;gap:24px;}
+
+/* ── stat-card ───────────────────────────────────────────────────────── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.stat-card{
+  background:var(--surface);border-radius:var(--r-xl);padding:16px 20px;
+  box-shadow:0 1px 2px rgba(16,30,50,.06),0 1px 3px rgba(16,30,50,.04);
+  display:flex;flex-direction:column;gap:4px;
+}
+.stat-label{font-size:12.5px;font-weight:400;color:var(--text-muted);}
+.stat-value{font-size:28px;font-weight:800;line-height:1.15;letter-spacing:-.01em;}
+.stat-value.success{color:var(--success);}
+.stat-value.warning{color:var(--warning);}
+.stat-value.faint{color:var(--text-faint);}
+.stat-value.accent{color:var(--accent);}
+.stat-sub{font-size:11px;font-weight:500;color:var(--text-faint);}
+
+/* ── shortcut-card ───────────────────────────────────────────────────── */
+.section-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:2px;}
+.shortcut-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.shortcut-card{
+  background:var(--surface);border-radius:var(--r-xl);padding:20px 20px 18px;
+  box-shadow:0 1px 2px rgba(16,30,50,.06),0 1px 3px rgba(16,30,50,.04);
+  display:flex;flex-direction:column;gap:12px;transition:transform .15s ease, box-shadow .15s ease;
+  text-decoration:none;
+}
+.shortcut-card:not(.state-hover):hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08);}
+.shortcut-card.state-hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08);}
+.shortcut-icon{
+  width:42px;height:42px;border-radius:var(--r-lg);background:var(--primary-soft);color:var(--primary);
+  display:flex;align-items:center;justify-content:center;
+}
+.shortcut-title{font-size:13.5px;font-weight:600;color:var(--text);}
+.shortcut-desc{font-size:12.5px;color:var(--text-muted);margin-top:2px;line-height:1.5;}
+.shortcut-link{font-size:12.5px;font-weight:500;color:var(--primary);display:flex;align-items:center;gap:4px;transition:gap .15s ease;}
+.shortcut-card.state-hover .shortcut-link{gap:7px;}
+.state-tag{
+  display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--primary-soft-text);background:var(--primary-soft);padding:3px 8px;border-radius:var(--r-full);
+  position:absolute;top:14px;right:14px;
+}
+.shortcut-card{position:relative;}
+
+/* ── Principe directeur callout ─────────────────────────────────────── */
+.callout{
+  background:var(--surface);border-radius:var(--r-xl);padding:20px 24px;
+  box-shadow:0 1px 2px rgba(16,30,50,.06),0 1px 3px rgba(16,30,50,.04);
+  display:flex;align-items:flex-start;gap:16px;
+}
+.callout-icon{
+  width:36px;height:36px;border-radius:var(--r-lg);background:var(--primary-soft);color:var(--primary);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.callout-title{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.callout-text{font-size:13px;color:var(--text-muted);line-height:1.6;max-width:760px;}
+</style>
+</head>
+<body>
+<div class="browser-chrome">
+  <div class="chrome-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span class="url">app.certibase.io/</span>
+  </div>
+  <div class="app">
+    <nav class="sidebar">
+      <div class="brand"><div class="brand-mark">CB</div><div><div class="brand-name">CertiBase</div><div class="brand-sub">Console interne</div></div></div>
+      <div class="nav-section-label">Navigation</div>
+      <a class="nav-item active"><span class="ic">▦</span>Vue d'ensemble</a>
+      <a class="nav-item"><span class="ic">▤</span>Fiches<span class="nav-badge">8</span></a>
+      <a class="nav-item"><span class="ic">▲</span>Concurrents</a>
+      <a class="nav-item"><span class="ic">⇩</span>Imports<span class="nav-badge">4</span></a>
+      <a class="nav-item"><span class="ic">◔</span>Assistant</a>
+      <div class="nav-section-label admin" style="border-top:1px solid var(--sidebar-border);padding-top:12px;margin-top:8px;">Admin</div>
+      <a class="nav-item admin"><span class="ic">◎</span>Utilisateurs</a>
+    </nav>
+    <main class="main">
+      <div class="page-header">
+        <h1>Bonjour, Léa</h1>
+        <div class="subtitle">Vue d'ensemble de CertiBase</div>
+      </div>
+      <div class="content">
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <span class="stat-label">Fiches validées</span>
+            <span class="stat-value success">47</span>
+            <span class="stat-sub">dans la base de connaissance</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">À valider</span>
+            <span class="stat-value warning">3</span>
+            <span class="stat-sub">extractions en attente</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Angles morts</span>
+            <span class="stat-value faint">0</span>
+            <span class="stat-sub">détectés par l'IA</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Imports actifs</span>
+            <span class="stat-value accent">1</span>
+            <span class="stat-sub">dans le pipeline</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-label" style="margin-bottom:10px;">Raccourcis</div>
+          <div class="shortcut-grid">
+            <a class="shortcut-card">
+              <div class="shortcut-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/>
+                </svg>
+              </div>
+              <div>
+                <div class="shortcut-title">Base de connaissance</div>
+                <div class="shortcut-desc">Parcourir, filtrer et gérer les fiches publiées</div>
+              </div>
+              <span class="shortcut-link">Ouvrir →</span>
+            </a>
+
+            <a class="shortcut-card state-hover">
+              <span class="state-tag">État — survol</span>
+              <div class="shortcut-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+                </svg>
+              </div>
+              <div>
+                <div class="shortcut-title">Imports & validation</div>
+                <div class="shortcut-desc">Importer du contenu et valider les drafts générés</div>
+              </div>
+              <span class="shortcut-link">Ouvrir →</span>
+            </a>
+
+            <a class="shortcut-card">
+              <div class="shortcut-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12a8 8 0 0 1-11.5 7.2L4 21l1.8-5.5A8 8 0 1 1 21 12z"/>
+                </svg>
+              </div>
+              <div>
+                <div class="shortcut-title">Assistant interne</div>
+                <div class="shortcut-desc">Interroger la base en langage naturel avec sources citées</div>
+              </div>
+              <span class="shortcut-link">Ouvrir →</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="callout-title">Principe directeur</div>
+            <p class="callout-text">
+              20 fiches parfaitement structurées valent mieux que 200 pages de documentation mal indexées.
+              Chaque fiche doit être autonome, actionnable et directement utilisable par les agents.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
