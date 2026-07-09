@@ -324,6 +324,25 @@ x-api-key: <N8N_INGEST_API_KEY>
   "alerts_created": 2
 }`}
         />
+
+        <Endpoint
+          method="POST"
+          path="/api/ingest/argumentaire"
+          description="Ingère l'argumentaire commercial généré par le nœud n8n 'AI Agent' (accroche, meilleurs arguments par concurrent, objections-réponses, cibles prioritaires). Archive l'argumentaire précédent puis crée la nouvelle fiche type=objection, publiée automatiquement — affichée en tête de la page Espace concurrent. Une seule fiche active à la fois, pas d'accumulation au fil des exécutions."
+          auth={false}
+          note="Authentification via header x-api-key (variable N8N_INGEST_API_KEY), même mécanisme que /api/ingest/concurrents."
+          request={`// Header
+x-api-key: <N8N_INGEST_API_KEY>
+
+// Body — sortie brute du nœud "AI Agent" du workflow n8n
+{
+  "argumentaire": "🎯 Accroche commerciale...\\n\\n💪 Nos 3 meilleurs arguments...\\n\\n❓ Objections → réponses..."
+}`}
+          response={`{
+  "ok": true,
+  "id": "uuid"
+}`}
+        />
       </Section>
 
       {/* Imports */}
