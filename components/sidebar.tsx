@@ -1,5 +1,6 @@
+import Link from 'next/link'
 import NavItem from './nav-item'
-import { IconGrid, IconCards, IconImport, IconChat, IconUsers } from './icons'
+import { IconGrid, IconCards, IconImport, IconChat, IconUsers, IconBook } from './icons'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import SignOutButton from './sign-out-button'
@@ -126,6 +127,16 @@ export default async function Sidebar() {
 
       {/* ── Spacer ── */}
       <div className="flex-1" />
+
+      {/* ── API Docs ── */}
+      <Link
+        href="/docs"
+        className="flex items-center gap-2.5 px-2 py-1.5 rounded-md mb-2 transition-colors"
+        style={{ color: 'var(--sidebar-muted)' }}
+      >
+        <IconBook size={15} />
+        <span className="text-[12.5px]">Documentation API</span>
+      </Link>
 
       {/* ── Agents alimentés ── */}
       <div

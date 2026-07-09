@@ -4,7 +4,7 @@ baseline_commit: 78c360de05481ba4eaf731cdc32c0c83b2b5b35e
 
 # Story 3.3 : Cycle de vie & gestion des fiches
 
-Status: in-progress
+Status: done
 
 ## Story
 

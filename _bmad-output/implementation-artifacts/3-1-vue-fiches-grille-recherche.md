@@ -4,7 +4,7 @@ baseline_commit: 1bb69c9
 
 # Story 3.1 : Vue Fiches — grille & recherche
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 

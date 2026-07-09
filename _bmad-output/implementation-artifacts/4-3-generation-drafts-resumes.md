@@ -4,7 +4,7 @@ baseline_commit: 7ef3e57
 
 # Story 4.3 : Génération de drafts & résumés
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 

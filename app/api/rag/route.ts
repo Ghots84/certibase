@@ -11,11 +11,39 @@ function sseEvent(data: unknown): string {
   return `data: ${JSON.stringify(data)}\n\n`
 }
 
+const ROLE_CONTEXT: Record<string, string> = {
+  csm:   '- Tu réponds à un Customer Success Manager (CSM). Priorise les guides de situation, protocoles de résolution et étapes de suivi client. Mets en avant les actions concrètes et les messages type.',
+  sales: '- Tu réponds à un Account Executive (Sales). Priorise les objections clients, arguments commerciaux et cas clients chiffrés. Sois percutant et orienté résultat.',
+  admin: '- Tu réponds à un Knowledge Manager (Admin). Donne une vue complète : tous types de fiches, y compris les angles morts et les informations techniques avancées.',
+  ops:   '- Tu réponds à un membre de l\'équipe Opérations. Priorise les processus, la documentation interne et les guides pratiques.',
+}
+
 export async function POST(request: Request) {
   const { question } = await request.json()
 
   if (!question?.trim()) {
     return Response.json({ error: 'question required' }, { status: 400 })
+  }
+
+  // Résoudre le rôle utilisateur pour le filtrage et le prompt
+  let profileFilter = 'all'
+  let roleContext = ''
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const admin = createAdminClient()
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+      const role = profile?.role ?? 'all'
+      profileFilter = role
+      roleContext = ROLE_CONTEXT[role] ?? ''
+    }
+  } catch {
+    // En cas d'erreur auth, on continue avec 'all'
   }
 
   const stream = new ReadableStream({
@@ -38,7 +66,7 @@ export async function POST(request: Request) {
           query_embedding: `[${queryEmbedding.join(',')}]`,
           match_threshold: 0.35,
           match_count: 5,
-          profile_filter: 'all',
+          profile_filter: profileFilter,
         })
 
         if (error) throw new Error(`match_documents error: ${error.message}`)
@@ -86,7 +114,7 @@ export async function POST(request: Request) {
 
         const systemPrompt = `Tu es l'assistant IA interne de CertiBase, spécialisé dans la certification professionnelle RNCP.
 Tu réponds aux équipes CSM et Sales en t'appuyant EXCLUSIVEMENT sur les fiches de connaissance fournies.
-
+${roleContext ? `\nContexte du profil connecté :\n${roleContext}\n` : ''}
 Règles de réponse :
 - Si la question porte sur une objection client, structure ta réponse en : réponse flash → arguments → reformulation.
 - Si la question porte sur un guide situation (TYPE: GUIDE_SITUATION), donne des étapes numérotées et des messages types.

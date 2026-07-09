@@ -4,7 +4,7 @@ baseline_commit: baa8a54
 
 # Story 3.2 : Drawer de détail d'une fiche
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 

@@ -259,8 +259,17 @@ function AssistantBubble({ msg }: { msg: Message }) {
   )
 }
 
+const ROLE_LABELS: Record<string, { label: string; color: string }> = {
+  admin: { label: 'Knowledge Manager', color: '#7A5AF8' },
+  csm:   { label: 'Customer Success',  color: '#2D7DD2' },
+  sales: { label: 'Account Executive', color: '#E8651E' },
+  ops:   { label: 'Operations',        color: '#1F8A5B' },
+  new:   { label: 'Lecture seule',     color: '#8A94A2' },
+}
+
 export default function AssistantPage() {
   const [firstName, setFirstName] = useState<string>('')
+  const [userRole, setUserRole] = useState<string>('')
   const [messages, setMessages] = useState<Message[]>([])
   const [historyLoaded, setHistoryLoaded] = useState(false)
   const [input, setInput] = useState('')
@@ -276,6 +285,7 @@ export default function AssistantPage() {
         const me = await res.json()
         const name = (me.full_name ?? '').split(' ')[0] || me.email?.split('@')[0] || ''
         setFirstName(name)
+        setUserRole(me.role ?? '')
       }
     }
     loadUser()
@@ -425,9 +435,22 @@ export default function AssistantPage() {
           <h1 className="font-bold text-[17px]" style={{ color: 'var(--text)', letterSpacing: 'var(--head-spacing)' }}>
             Assistant CertiBase
           </h1>
-          <p className="text-[12.5px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            Réponses basées sur les fiches de connaissance indexées
-          </p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-[12.5px]" style={{ color: 'var(--text-muted)' }}>
+              Réponses basées sur les fiches de connaissance indexées
+            </p>
+            {userRole && ROLE_LABELS[userRole] && (
+              <span
+                className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                style={{
+                  background: ROLE_LABELS[userRole].color + '18',
+                  color: ROLE_LABELS[userRole].color,
+                }}
+              >
+                {ROLE_LABELS[userRole].label}
+              </span>
+            )}
+          </div>
         </div>
 
         {messages.length > 0 && (

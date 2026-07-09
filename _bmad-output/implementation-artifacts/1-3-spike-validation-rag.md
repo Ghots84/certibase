@@ -4,7 +4,7 @@ baseline_commit: NO_VCS
 
 # Story 1.3 : Spike de validation RAG
 
-Status: in-progress
+Status: done
 
 ## Story
 
