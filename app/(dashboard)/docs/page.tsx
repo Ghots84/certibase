@@ -229,13 +229,14 @@ data: {"type":"error","message":"..."}`}
           response={`[
   {
     "id": "uuid",
-    "type": "objection",     // objection | guide_situation | cas_client | doc_certiplace
+    "type": "objection",     // objection | guide_situation | cas_client | concurrent
+                             // doc_certiplace | veille | support
     "title": "Objection sur le prix",
     "content": "...",
     "status": "published",   // draft | published | archived
-    "profil_cible": "all",   // all | csm | sales | ops
+    "profil_cible": "all",   // all | csm | sales | csm_sales
     "confidence_threshold": 0.75,
-    "source": "manual",      // manual | webinar | presentation | sales_call | doc
+    "source": "manual",      // manual | webinar | presentation | sales_call | doc | n8n
     "created_at": "2026-07-09T10:00:00Z"
   }
 ]`}
@@ -248,9 +249,10 @@ data: {"type":"error","message":"..."}`}
           adminOnly
           request={`{
   "title": "Réponse à l'objection prix",
-  "type": "objection",        // objection | guide_situation | cas_client | doc_certiplace
+  "type": "objection",        // objection | guide_situation | cas_client | concurrent
+                              // doc_certiplace | veille | support
   "content": "...",
-  "profil_cible": "all"       // all | csm | sales | ops — optionnel, défaut: "all"
+  "profil_cible": "all"       // all | csm | sales | csm_sales — optionnel, défaut: "all"
 }`}
           response={`// 201 Created
 {
@@ -378,7 +380,7 @@ import_type string    // webinar | presentation | sales_call | internal_doc | ot
   "id": "uuid",
   "email": "user@certiplace.fr",
   "full_name": "Marie Dupont",
-  "role": "csm",            // admin | csm | sales | ops | new
+  "role": "csm",            // admin | csm | sales
   "avatar_initials": "MD",
   "created_at": "2026-07-09T10:00:00Z"
 }`}
