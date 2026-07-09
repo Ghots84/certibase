@@ -37,8 +37,8 @@ export async function POST(request: Request) {
         .select('role')
         .eq('id', user.id)
         .single()
-      const role = profile?.role ?? 'all'
-      profileFilter = role
+      const role = profile?.role ?? 'csm'
+      profileFilter = 'all'
       roleContext = ROLE_CONTEXT[role] ?? ''
     }
   } catch {
