@@ -293,6 +293,39 @@ data: {"type":"error","message":"..."}`}
         />
       </Section>
 
+      {/* Concurrents (n8n) */}
+      <Section title="Concurrents (n8n)">
+        <Endpoint
+          method="POST"
+          path="/api/ingest/concurrents"
+          description="Ingère les données de veille concurrentielle (prix + alertes) produites par le workflow n8n de scraping. Crée/actualise des fiches type=concurrent (une par offre) et type=veille (une par changement détecté), publiées automatiquement."
+          auth={false}
+          note="Authentification via header x-api-key (variable N8N_INGEST_API_KEY) — pas de session Supabase, cette route est exemptée du middleware d'auth pour permettre l'appel serveur-à-serveur depuis n8n."
+          request={`// Header
+x-api-key: <N8N_INGEST_API_KEY>
+
+// Body — sortie brute du nœud "JS comparaison de tarif" du workflow n8n
+{
+  "tous_les_items": [
+    { "concurrent": "Procertif", "abo": "Impact", "prix": 110, "fonctionnalites": ["Accès cours", "Certificat"] },
+    { "concurrent": "Nous",      "abo": "Premium", "prix": 149, "fonctionnalites": ["CSM dédiée", "API incluse"] }
+  ],
+  "alertes": [
+    { "concurrent": "Procertif", "abo": "Impact", "prix_avant": 120, "prix_apres": 110, "delta": "-10.00", "pct": -8.3, "direction": "baisse" }
+  ],
+  "alertes_fonctions": [
+    { "concurrent": "Digiforma", "abo": "Basic", "ajouts": ["Signature électronique"], "suppressions": [] }
+  ],
+  "premiere_execution": false
+}`}
+          response={`{
+  "ok": true,
+  "snapshots_upserted": 2,
+  "alerts_created": 2
+}`}
+        />
+      </Section>
+
       {/* Imports */}
       <Section title="Imports">
         <Endpoint

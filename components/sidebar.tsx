@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import NavItem from './nav-item'
-import { IconGrid, IconCards, IconImport, IconChat, IconUsers, IconBook } from './icons'
+import { IconGrid, IconCards, IconImport, IconChat, IconUsers, IconBook, IconTrendingUp } from './icons'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import SignOutButton from './sign-out-button'
@@ -8,6 +8,7 @@ import SignOutButton from './sign-out-button'
 const MAIN_NAV = [
   { href: '/',          label: "Vue d'ensemble", icon: <IconGrid size={18} /> },
   { href: '/fiches',    label: 'Fiches',          icon: <IconCards size={18} />,  badge: '8' },
+  { href: '/concurrents', label: 'Concurrents',   icon: <IconTrendingUp size={18} /> },
   { href: '/imports',   label: 'Imports',         icon: <IconImport size={18} />, badge: '4' },
   { href: '/assistant', label: 'Assistant',       icon: <IconChat size={18} /> },
 ]

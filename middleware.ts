@@ -2,6 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Endpoints système à système (n8n, etc.) : pas de session Supabase, auth via secret propre à la route
+  if (request.nextUrl.pathname.startsWith('/api/ingest/')) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
