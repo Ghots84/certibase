@@ -1,6 +1,6 @@
 export const metadata = { title: 'Documentation API — CertiBase' }
 
-const BASE = 'https://certibase.certiplace.fr'
+const BASE = 'https://fks9nne2cukvhooub7j722o3.161.97.84.193.sslip.io'
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE'
 
