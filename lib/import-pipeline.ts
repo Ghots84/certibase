@@ -150,17 +150,19 @@ type ClaudeJson = {
   objections: DraftItem[]
   faq: DraftItem[]
   moments_cles: DraftItem[]
+  support_client: DraftItem[]
   angles_morts: DraftItem[]
 }
 
 const ANALYSIS_SYSTEM = `Tu analyses du contenu provenant d'une équipe CertiPlace (organismes de certification RNCP).
 Ton rôle : extraire la connaissance structurée pour alimenter une base interne.
 
-Retourne UNIQUEMENT un JSON valide, sans texte ni markdown autour, avec exactement ces 4 clés :
+Retourne UNIQUEMENT un JSON valide, sans texte ni markdown autour, avec exactement ces 5 clés :
 {
   "objections": [{"title":"...","content":"...","confidence":0.85,"source_timestamp_sec":null}],
   "faq": [...],
   "moments_cles": [...],
+  "support_client": [{"title":"...","content":"...","confidence":0.8}],
   "angles_morts": [{"title":"...","content":"...","confidence":0.7}]
 }
 
@@ -168,6 +170,7 @@ Définitions :
 - objections : objections clients récurrentes + réponse recommandée (verbatim si disponible)
 - faq : questions fréquentes avec réponse claire et actionnelle
 - moments_cles : arguments forts, cas clients chiffrés, best practices identifiées
+- support_client : procédures de résolution de tickets, messages type pour répondre aux candidats/clients en difficulté, étapes d'escalade, problèmes récurrents post-vente
 - angles_morts : sujets abordés sans réponse claire, lacunes détectées, questions sans fiche
 - confidence : 0-1, pertinence + complétude de l'information extraite
 - source_timestamp_sec : secondes dans l'audio/vidéo, null si non applicable
@@ -218,10 +221,11 @@ async function analyzeAndCreateDrafts(
   await admin.from('fiches').delete().eq('source_ref_id', importId).eq('status', 'draft')
 
   const TYPE_MAP: Record<keyof ClaudeJson, string> = {
-    objections:   'objection',
-    faq:          'guide_situation',
-    moments_cles: 'cas_client',
-    angles_morts: 'doc_certiplace',
+    objections:     'objection',
+    faq:            'guide_situation',
+    moments_cles:   'cas_client',
+    support_client: 'support',
+    angles_morts:   'doc_certiplace',
   }
 
   const rows: object[] = []
