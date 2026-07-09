@@ -138,7 +138,11 @@ async function extractPdf(filePath: string, originalName: string): Promise<strin
 
 // ── Claude analysis ─────────────────────────────────────────────────────────
 
-type DraftItem = {
+const VALID_FICHE_TYPES = ['objection', 'guide_situation', 'cas_client', 'concurrent', 'doc_certiplace', 'veille', 'support'] as const
+type FicheTypeAI = typeof VALID_FICHE_TYPES[number]
+
+type FicheItem = {
+  type: FicheTypeAI
   title: string
   content: string
   confidence: number
@@ -147,35 +151,39 @@ type DraftItem = {
 }
 
 type ClaudeJson = {
-  objections: DraftItem[]
-  faq: DraftItem[]
-  moments_cles: DraftItem[]
-  support_client: DraftItem[]
-  angles_morts: DraftItem[]
+  fiches: FicheItem[]
 }
 
 const ANALYSIS_SYSTEM = `Tu analyses du contenu provenant d'une équipe CertiPlace (organismes de certification RNCP).
 Ton rôle : extraire la connaissance structurée pour alimenter une base interne.
 
-Retourne UNIQUEMENT un JSON valide, sans texte ni markdown autour, avec exactement ces 5 clés :
+Retourne UNIQUEMENT un JSON valide, sans texte ni markdown autour, avec cette structure :
 {
-  "objections": [{"title":"...","content":"...","confidence":0.85,"source_timestamp_sec":null}],
-  "faq": [...],
-  "moments_cles": [...],
-  "support_client": [{"title":"...","content":"...","confidence":0.8}],
-  "angles_morts": [{"title":"...","content":"...","confidence":0.7}]
+  "fiches": [
+    {"type":"objection","title":"...","content":"...","confidence":0.85,"source_timestamp_sec":null},
+    {"type":"guide_situation","title":"...","content":"...","confidence":0.9},
+    {"type":"support","title":"...","content":"...","confidence":0.8}
+  ]
 }
 
-Définitions :
-- objections : objections clients récurrentes + réponse recommandée (verbatim si disponible)
-- faq : questions fréquentes avec réponse claire et actionnelle
-- moments_cles : arguments forts, cas clients chiffrés, best practices identifiées
-- support_client : procédures de résolution de tickets, messages type pour répondre aux candidats/clients en difficulté, étapes d'escalade, problèmes récurrents post-vente
-- angles_morts : sujets abordés sans réponse claire, lacunes détectées, questions sans fiche
+Types disponibles et leur usage :
+- objection : objection client récurrente + réponse recommandée (verbatim si disponible)
+- guide_situation : question fréquente avec réponse claire et actionnelle, guide étape par étape
+- cas_client : argument fort, cas client chiffré, best practice identifiée
+- concurrent : information sur un concurrent, comparatif, positionnement
+- doc_certiplace : documentation produit CertiPlace, processus interne, règle métier
+- veille : information marché, tendance sectorielle, nouveauté réglementaire
+- support : procédure de résolution de ticket, message type pour candidat/client en difficulté, étape d'escalade, problème récurrent post-vente
+
+Champs :
+- type : l'un des 7 types ci-dessus, choisi selon le contenu
+- title : titre court et précis (max 255 caractères)
+- content : contenu complet et actionnable en markdown
 - confidence : 0-1, pertinence + complétude de l'information extraite
 - source_timestamp_sec : secondes dans l'audio/vidéo, null si non applicable
 - source_page : numéro de page dans le doc, null si non applicable
-Génère entre 3 et 8 éléments par catégorie. Omets les catégories vides (tableau vide []).`
+
+Génère entre 5 et 20 fiches. N'inclus que les types pertinents au contenu analysé.`
 
 function stripCodeFences(raw: string): string {
   return raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
@@ -217,37 +225,31 @@ async function analyzeAndCreateDrafts(
     throw new Error(`JSON Claude invalide : ${block.text.slice(0, 200)}`)
   }
 
+  if (!Array.isArray(parsed.fiches)) {
+    throw new Error('JSON Claude invalide : clé "fiches" manquante ou non-tableau')
+  }
+
   // Supprimer les fiches draft existantes liées à cet import (idempotence)
   await admin.from('fiches').delete().eq('source_ref_id', importId).eq('status', 'draft')
 
-  const TYPE_MAP: Record<keyof ClaudeJson, string> = {
-    objections:     'objection',
-    faq:            'guide_situation',
-    moments_cles:   'cas_client',
-    support_client: 'support',
-    angles_morts:   'doc_certiplace',
-  }
-
   const rows: object[] = []
-  for (const [key, items] of Object.entries(parsed) as [keyof ClaudeJson, DraftItem[]][]) {
-    if (!Array.isArray(items)) continue
-    for (const item of items) {
-      if (!item.title || !item.content) continue
-      rows.push({
-        source_ref_id:        importId,
-        type:                 TYPE_MAP[key],
-        title:                String(item.title).slice(0, 255),
-        content:              String(item.content),
-        confidence_threshold: typeof item.confidence === 'number'
-          ? Math.min(1, Math.max(0, item.confidence))
-          : 0.5,
-        source_timestamp_sec: item.source_timestamp_sec ?? null,
-        source_page:          item.source_page ?? null,
-        profil_cible:         profilCible ?? 'all',
-        source:               IMPORT_TO_SOURCE[importType ?? 'other'] ?? 'doc',
-        status:               'draft',
-      })
-    }
+  for (const item of parsed.fiches) {
+    if (!item.title || !item.content) continue
+    if (!VALID_FICHE_TYPES.includes(item.type)) continue
+    rows.push({
+      source_ref_id:        importId,
+      type:                 item.type,
+      title:                String(item.title).slice(0, 255),
+      content:              String(item.content),
+      confidence_threshold: typeof item.confidence === 'number'
+        ? Math.min(1, Math.max(0, item.confidence))
+        : 0.5,
+      source_timestamp_sec: item.source_timestamp_sec ?? null,
+      source_page:          item.source_page ?? null,
+      profil_cible:         profilCible ?? 'all',
+      source:               IMPORT_TO_SOURCE[importType ?? 'other'] ?? 'doc',
+      status:               'draft',
+    })
   }
 
   if (rows.length > 0) {
