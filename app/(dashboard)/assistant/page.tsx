@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { uuid } from '@/lib/uuid'
+import { ROLE_COLORS, ROLE_LABELS } from '@/lib/roles'
+import type { UserRole } from '@/lib/supabase/types'
 
 type Source = {
   id: string
@@ -259,12 +261,6 @@ function AssistantBubble({ msg }: { msg: Message }) {
   )
 }
 
-const ROLE_LABELS: Record<string, { label: string; color: string }> = {
-  admin: { label: 'Knowledge Manager', color: '#7A5AF8' },
-  csm:   { label: 'Customer Success',  color: '#2D7DD2' },
-  sales: { label: 'Account Executive', color: '#E8651E' },
-}
-
 export default function AssistantPage() {
   const [firstName, setFirstName] = useState<string>('')
   const [userRole, setUserRole] = useState<string>('')
@@ -437,15 +433,15 @@ export default function AssistantPage() {
             <p className="text-[12.5px]" style={{ color: 'var(--text-muted)' }}>
               Réponses basées sur les fiches de connaissance indexées
             </p>
-            {userRole && ROLE_LABELS[userRole] && (
+            {userRole && ROLE_LABELS[userRole as UserRole] && (
               <span
                 className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                 style={{
-                  background: ROLE_LABELS[userRole].color + '18',
-                  color: ROLE_LABELS[userRole].color,
+                  background: ROLE_COLORS[userRole as UserRole] + '18',
+                  color: ROLE_COLORS[userRole as UserRole],
                 }}
               >
-                {ROLE_LABELS[userRole].label}
+                {ROLE_LABELS[userRole as UserRole]}
               </span>
             )}
           </div>

@@ -3,15 +3,10 @@ import NavItem from './nav-item'
 import { IconGrid, IconCards, IconImport, IconChat, IconUsers, IconBook, IconTrendingUp } from './icons'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getNavCounts } from '@/lib/stats'
+import { ROLE_COLORS, ROLE_LABELS } from '@/lib/roles'
+import type { UserRole } from '@/lib/supabase/types'
 import SignOutButton from './sign-out-button'
-
-const MAIN_NAV = [
-  { href: '/',          label: "Vue d'ensemble", icon: <IconGrid size={18} /> },
-  { href: '/fiches',    label: 'Fiches',          icon: <IconCards size={18} />,  badge: '8' },
-  { href: '/concurrents', label: 'Concurrents',   icon: <IconTrendingUp size={18} /> },
-  { href: '/imports',   label: 'Imports',         icon: <IconImport size={18} />, badge: '4' },
-  { href: '/assistant', label: 'Assistant',       icon: <IconChat size={18} /> },
-]
 
 const ADMIN_NAV = [
   { href: '/users', label: 'Utilisateurs', icon: <IconUsers size={18} /> },
@@ -22,18 +17,6 @@ const AGENTS = [
   { label: 'Sales Digital',    color: 'var(--success)', active: true  },
   { label: 'Assistant',        color: 'var(--primary)', active: false, tag: 'V1' },
 ]
-
-const ROLE_COLORS: Record<string, string> = {
-  admin: '#7A5AF8',
-  csm:   '#2D7DD2',
-  sales: '#E8651E',
-}
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Knowledge Manager',
-  csm:   'Customer Success',
-  sales: 'Account Executive',
-}
 
 function getInitials(name: string | null, email: string): string {
   if (name) return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -57,10 +40,20 @@ export default async function Sidebar() {
 
   const email = profile?.email ?? user?.email ?? ''
   const initials = profile?.avatar_initials ?? getInitials(profile?.full_name ?? null, email)
-  const role = profile?.role ?? 'csm'
+  const role = (profile?.role ?? 'csm') as UserRole
   const avatarColor = ROLE_COLORS[role] ?? '#8A94A2'
   const roleLabel = ROLE_LABELS[role] ?? role
   const isAdmin = role === 'admin'
+
+  const { fiches: fichesCount, imports: importsCount } = await getNavCounts()
+
+  const MAIN_NAV = [
+    { href: '/',          label: "Vue d'ensemble", icon: <IconGrid size={18} /> },
+    { href: '/fiches',    label: 'Fiches',          icon: <IconCards size={18} />,  badge: String(fichesCount) },
+    { href: '/concurrents', label: 'Concurrents',   icon: <IconTrendingUp size={18} /> },
+    { href: '/imports',   label: 'Imports',         icon: <IconImport size={18} />, badge: String(importsCount) },
+    { href: '/assistant', label: 'Assistant',       icon: <IconChat size={18} /> },
+  ]
 
   return (
     <nav

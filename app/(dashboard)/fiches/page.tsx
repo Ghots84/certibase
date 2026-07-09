@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import type { Fiche, FicheType, Blindspot } from '@/lib/supabase/types'
+import { TypeBadge, StatusBadge, FICHE_TYPE_META } from '@/components/ui/badge'
+import { ConfidenceBar } from '@/components/ui/confidence-bar'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -16,16 +18,6 @@ const TYPE_TO_CATEGORY: Record<string, Category> = {
   doc_certiplace:  'Produit',
   veille:          'Veille',
   support:         'Support',
-}
-
-const TYPE_META: Record<string, { label: string; bg: string; color: string }> = {
-  objection:       { label: 'Objection',      bg: 'var(--danger-soft)',  color: 'var(--danger)'    },
-  guide_situation: { label: 'Guide situation', bg: 'var(--warning-soft)', color: 'var(--warning)'   },
-  cas_client:      { label: 'Cas client',      bg: 'var(--success-soft)', color: 'var(--success)'   },
-  concurrent:      { label: 'Concurrent',      bg: 'var(--accent-soft)',  color: 'var(--accent)'    },
-  doc_certiplace:  { label: 'CertiPlace',      bg: 'var(--primary-soft)', color: 'var(--primary)'   },
-  veille:          { label: 'Veille',          bg: 'var(--surface-2)',    color: 'var(--text-muted)' },
-  support:         { label: 'Support',         bg: 'var(--accent-soft)',  color: 'var(--accent)'    },
 }
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -152,19 +144,6 @@ function MarkdownContent({ content }: { content: string }) {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function ConfidenceBar({ value }: { value: number }) {
-  const pct = Math.round(value * 100)
-  const color = pct >= 85 ? 'var(--success)' : pct >= 70 ? 'var(--warning)' : 'var(--danger)'
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      <div style={{ width: 46, height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden', flexShrink: 0 }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 2 }} />
-      </div>
-      <span className="mono" style={{ fontSize: 11, color, fontWeight: 600, minWidth: 28 }}>{pct}%</span>
-    </div>
-  )
-}
-
 function FicheCard({
   fiche,
   active,
@@ -174,9 +153,6 @@ function FicheCard({
   active: boolean
   onClick: () => void
 }) {
-  const typeMeta = TYPE_META[fiche.type ?? 'doc_certiplace'] ?? TYPE_META.doc_certiplace
-  const isPublished = fiche.status === 'published'
-
   return (
     <div
       role="button"
@@ -213,26 +189,8 @@ function FicheCard({
     >
       {/* Ligne 1 : type chip + statut */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-        <span style={{
-          padding: '2px 8px', borderRadius: 'var(--radius-pill)',
-          background: typeMeta.bg, color: typeMeta.color,
-          fontSize: 11, fontWeight: 600, flexShrink: 0,
-        }}>
-          {typeMeta.label}
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-          <span style={{
-            width: 6, height: 6, borderRadius: '50%',
-            background: isPublished ? 'var(--success)' : 'var(--warning)',
-            display: 'inline-block',
-          }} />
-          <span style={{
-            fontSize: 11, fontWeight: 500,
-            color: isPublished ? 'var(--success)' : 'var(--warning)',
-          }}>
-            {isPublished ? 'Validée' : 'À valider'}
-          </span>
-        </div>
+        <TypeBadge type={fiche.type ?? 'doc_certiplace'} />
+        <StatusBadge status={fiche.status} />
       </div>
 
       {/* Ligne 2 : titre (2 lignes max) */}
@@ -259,7 +217,7 @@ function FicheCard({
         <span className="mono" style={{ fontSize: 10, color: 'var(--text-faint)' }}>
           #{fiche.id.slice(0, 8)}
         </span>
-        <ConfidenceBar value={fiche.confidence_threshold} />
+        <ConfidenceBar value={fiche.confidence_threshold} width={46} />
       </div>
     </div>
   )
@@ -445,10 +403,7 @@ function FicheDrawer({
   onRefresh: () => void
   onOpenEdit: (f: Fiche) => void
 }) {
-  const typeMeta = TYPE_META[fiche.type ?? 'doc_certiplace'] ?? TYPE_META.doc_certiplace
   const isPublished = fiche.status === 'published'
-  const pct = Math.round(fiche.confidence_threshold * 100)
-  const confColor = pct >= 85 ? 'var(--success)' : pct >= 70 ? 'var(--warning)' : 'var(--danger)'
   const srcLabel = SOURCE_LABEL[fiche.source ?? ''] ?? fiche.source ?? '—'
   const srcIcon = SOURCE_ICON[fiche.source ?? ''] ?? '📄'
   const profilLabel = PROFIL_LABEL[fiche.profil_cible ?? ''] ?? fiche.profil_cible ?? 'Tous les profils'
@@ -550,36 +505,10 @@ function FicheDrawer({
         gap: 8,
         flexWrap: 'wrap',
       }}>
-        {/* Statut */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{
-            width: 7, height: 7, borderRadius: '50%',
-            background: isPublished ? 'var(--success)' : 'var(--warning)',
-            display: 'inline-block',
-          }} />
-          <span style={{
-            fontSize: 12, fontWeight: 600,
-            color: isPublished ? 'var(--success)' : 'var(--warning)',
-          }}>
-            {isPublished ? 'Validée' : 'À valider'}
-          </span>
-        </div>
-
-        {/* Type */}
-        <span style={{
-          padding: '2px 8px', borderRadius: 'var(--radius-pill)',
-          background: typeMeta.bg, color: typeMeta.color,
-          fontSize: 11.5, fontWeight: 600,
-        }}>
-          {typeMeta.label}
-        </span>
-
-        {/* Confiance */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
-          <div style={{ width: 52, height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${pct}%`, background: confColor, borderRadius: 2 }} />
-          </div>
-          <span className="mono" style={{ fontSize: 11.5, color: confColor, fontWeight: 700 }}>{pct}%</span>
+        <StatusBadge status={fiche.status} />
+        <TypeBadge type={fiche.type ?? 'doc_certiplace'} />
+        <div style={{ marginLeft: 'auto' }}>
+          <ConfidenceBar value={fiche.confidence_threshold} width={52} />
         </div>
       </div>
 
@@ -807,7 +736,7 @@ function FicheFormModal({
             <label>
               <span style={fieldLabel}>Type</span>
               <select value={type} onChange={e => setType(e.target.value)} required style={fieldInput}>
-                {Object.entries(TYPE_META).map(([k, v]) => (
+                {Object.entries(FICHE_TYPE_META).map(([k, v]) => (
                   <option key={k} value={k}>{v.label}</option>
                 ))}
               </select>

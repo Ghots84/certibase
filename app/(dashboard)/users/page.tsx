@@ -4,26 +4,16 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { IconUsers } from '@/components/icons'
 import InviteForm from './invite-form'
 import RoleSelect from './role-select'
+import { ROLE_COLORS, ROLE_LABELS } from '@/lib/roles'
+import type { UserRole } from '@/lib/supabase/types'
 
 type Profile = {
   id: string
   email: string
   full_name: string | null
-  role: string
+  role: UserRole
   avatar_initials: string | null
   created_at: string
-}
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Knowledge Manager',
-  csm:   'Customer Success',
-  sales: 'Account Executive',
-}
-
-const ROLE_COLORS: Record<string, string> = {
-  admin: '#7A5AF8',
-  csm:   '#2D7DD2',
-  sales: '#E8651E',
 }
 
 function getInitials(profile: Profile) {

@@ -7,6 +7,7 @@ import {
 } from '@/components/icons'
 import type { Import, Fiche } from '@/lib/supabase/types'
 import { createClient as createBrowserSupabase } from '@/lib/supabase/client'
+import { ConfidenceBar } from '@/components/ui/confidence-bar'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -61,19 +62,6 @@ function ProgressBar({ status }: { status: string }) {
         background: status === 'analyzing' ? 'var(--primary)' : 'var(--accent)',
         animation: 'cbprogress 1.6s ease-in-out infinite',
       }} />
-    </div>
-  )
-}
-
-function ConfidenceBar({ value }: { value: number }) {
-  const pct = Math.round(value * 100)
-  const color = pct >= 85 ? 'var(--success)' : pct >= 70 ? 'var(--warning)' : 'var(--danger)'
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      <div style={{ flex: 1, height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 2, transition: 'width 0.3s ease' }} />
-      </div>
-      <span className="mono" style={{ fontSize: 11, color, fontWeight: 600, minWidth: 28 }}>{pct}%</span>
     </div>
   )
 }
